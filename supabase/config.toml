@@ -1,0 +1,6 @@
+project_id = "ttdagcbqqwjowhunrpjo"
+
+# Die Funktion prüft den eingeloggten Nutzer selbst (supabase.auth.getUser),
+# damit sie auch mit den neuen Publishable/Secret-Keys sauber funktioniert.
+[functions.intervals-sync]
+verify_jwt = false
