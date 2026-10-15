@@ -302,3 +302,57 @@ main { display: grid; gap: 16px; }
   .today-grid { grid-template-columns: 1fr; }
   .kv strong { font-size: 18px; }
 }
+
+/* ---------- Coach ---------- */
+.coach { display: grid; gap: 14px; }
+.races { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.race-card { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+.race-card.primary { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.race-card strong { font-size: 17px; }
+.countdown { margin-top: 6px; font-size: 22px; color: var(--accent); }
+.phase-dot { width: 12px; height: 12px; border-radius: 999px; }
+.tid { display: grid; gap: 10px; margin-top: 10px; }
+.tid-row { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 10px; }
+.tid-bar { display: flex; height: 22px; border-radius: 8px; overflow: hidden; background: var(--surface-2); }
+.tid-bar > div { display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #11140a; }
+.tid-legend, .phase-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); }
+.tid-legend i, .phase-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.phase-legend em { font-style: normal; opacity: 0.7; margin-left: 3px; font-family: "JetBrains Mono", monospace; }
+.hint { margin: 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, #f5c04a 12%, transparent); color: #f5c04a; font-size: 13px; }
+
+.proposals { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.proposal { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.proposal-main { width: 100%; display: grid; grid-template-columns: 70px 52px 1fr auto; align-items: center; gap: 10px; background: transparent; color: var(--text); font-weight: 400; text-align: left; padding: 10px 12px; }
+.proposal-day { font-weight: 600; font-size: 13px; }
+.zone-chip { font-size: 11px; font-weight: 700; color: #11140a; text-align: center; border-radius: 6px; padding: 2px 6px; }
+.proposal-name { font-weight: 500; }
+.proposal-detail { padding: 0 12px 12px; }
+.proposal-detail pre { margin: 0 0 6px; font-size: 12px; white-space: pre-wrap; color: var(--muted); font-family: "JetBrains Mono", monospace; }
+
+.season { display: grid; grid-template-columns: repeat(32, minmax(0, 1fr)); gap: 3px; height: 170px; align-items: end; }
+.season-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 3px; padding: 0; background: transparent; border-radius: 4px; }
+.season-bar { width: 100%; border-radius: 3px 3px 1px 1px; min-height: 3px; }
+.season-km { font-size: 9px; color: var(--muted); }
+.season-kw { font-size: 9px; color: var(--muted); }
+.season-col.now .season-kw { color: var(--accent); font-weight: 700; }
+.season-col.sel { outline: 1px solid var(--text); outline-offset: 1px; }
+.phase-legend { margin-top: 10px; }
+
+.zones { width: 100%; border-collapse: collapse; font-size: 14px; }
+.zones th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.zones td { padding: 8px; border-bottom: 1px solid var(--border); }
+.zone-form { display: grid; gap: 10px; justify-items: start; }
+.grid-zones { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; width: 100%; }
+.science summary { cursor: pointer; list-style: none; }
+.science summary h2 { display: inline; }
+.science ul { margin: 12px 0 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; }
+
+@media (max-width: 720px) {
+  .races { grid-template-columns: 1fr; }
+  .tid-row { grid-template-columns: 1fr; gap: 4px; }
+  .proposal-main { grid-template-columns: 58px 44px 1fr; }
+  .proposal-main .plan-meta { grid-column: 3; }
+  .season-km { display: none; }
+  .season-kw { font-size: 8px; }
+  .zones th:nth-child(4), .zones td:nth-child(4) { display: none; }
+}

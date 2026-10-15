@@ -4,6 +4,7 @@ import { callFunction } from "./supabase";
 import Today from "./Today";
 import Training from "./Training";
 import Placeholder from "./Placeholder";
+import Coach from "./Coach";
 import Settings from "./Settings";
 import { IconCoach, IconFuel, IconGear, IconRace, IconSync, IconToday, IconTraining } from "./icons";
 
@@ -93,18 +94,7 @@ export default function Shell({ session }: { session: Session }) {
       <main>
         {tab === "heute" && <Today refreshKey={refreshKey} onGoTraining={() => go("training")} />}
         {tab === "training" && <Training refreshKey={refreshKey} onImport={() => sync(365)} syncing={syncing} />}
-        {tab === "coach" && (
-          <Placeholder
-            icon={<IconCoach size={28} />}
-            title="Coach"
-            intro="Dein Weg zu Hermannslauf und Rennsteig – Woche für Woche."
-            items={[
-              "Saisonplan mit Phasen (Grundlage, Aufbau, Spezifisch, Tapering)",
-              "Wochenumfang und Belastung passend zu Form und Terminen",
-              "Vorschläge, die du mit einem Tipp in den Wochenplan übernimmst",
-            ]}
-          />
-        )}
+        {tab === "coach" && <Coach refreshKey={refreshKey} />}
         {tab === "race" && (
           <Placeholder
             icon={<IconRace size={28} />}

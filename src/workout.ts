@@ -123,8 +123,8 @@ export function toIntervalsText(st: Structure): string {
     .join("\n\n");
 }
 
-/** Grobe Schätzung von Dauer und Distanz */
-export function estimate(st: Structure): { seconds: number; meters: number } {
+/** Grobe Schätzung von Dauer und Distanz; Schritte ohne Pace nutzen `fallbackPace` (s/km), falls angegeben */
+export function estimate(st: Structure, fallbackPace?: number): { seconds: number; meters: number } {
   let seconds = 0;
   let meters = 0;
   for (const sec of st.sections) {
@@ -132,7 +132,7 @@ export function estimate(st: Structure): { seconds: number; meters: number } {
     for (const s of sec.steps) {
       const a = paceToSec(s.paceFrom);
       const b = paceToSec(s.paceTo);
-      const pace = a && b ? (a + b) / 2 : a; // Sekunden pro km
+      const pace = (a && b ? (a + b) / 2 : a) ?? fallbackPace ?? null; // Sekunden pro km
       if (s.kind === "time") {
         const t = stepSeconds(s);
         seconds += t * reps;
