@@ -95,5 +95,47 @@ Deno.serve(async (req) => {
     if (error) return json({ error: "Speichern fehlgeschlagen", detail: error.message }, 500, origin);
   }
 
-  return json({ synced: rows.length, oldest: isoDate(oldest), newest: isoDate(newest) }, 200, origin);
+  // Wellness (Schlaf, HRV, Ruhepuls, Fitness/Ermüdung) – Fehler hier brechen den Sync nicht ab
+  let wellnessCount = 0;
+  let wellnessError: string | null = null;
+  try {
+    const wRes = await fetch(
+      `https://intervals.icu/api/v1/athlete/${athleteId}/wellness?oldest=${isoDate(oldest)}&newest=${isoDate(newest)}`,
+      { headers: { Authorization: "Basic " + btoa(`API_KEY:${apiKey}`) } },
+    );
+    if (!wRes.ok) throw new Error(`Intervals ${wRes.status}`);
+    // deno-lint-ignore no-explicit-any
+    const wItems: any[] = await wRes.json();
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    const wRows = wItems
+      .filter((w) => typeof w?.id === "string")
+      .map((w) => ({
+        user_id: userId,
+        date: w.id,
+        ctl: num(w.ctl),
+        atl: num(w.atl),
+        ramp_rate: num(w.rampRate),
+        resting_hr: num(w.restingHR) != null ? Math.round(w.restingHR) : null,
+        hrv: num(w.hrv),
+        sleep_secs: num(w.sleepSecs) != null ? Math.round(w.sleepSecs) : null,
+        sleep_score: num(w.sleepScore),
+        weight: num(w.weight),
+        readiness: num(w.readiness),
+        raw: w,
+        synced_at: new Date().toISOString(),
+      }));
+    if (wRows.length > 0) {
+      const { error } = await supabase.from("wellness").upsert(wRows, { onConflict: "user_id,date" });
+      if (error) throw new Error(error.message);
+    }
+    wellnessCount = wRows.length;
+  } catch (e) {
+    wellnessError = e instanceof Error ? e.message : String(e);
+  }
+
+  return json(
+    { synced: rows.length, wellness: wellnessCount, wellness_error: wellnessError, oldest: isoDate(oldest), newest: isoDate(newest) },
+    200,
+    origin,
+  );
 });

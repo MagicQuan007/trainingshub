@@ -225,3 +225,80 @@ input[type="date"] { color-scheme: dark; }
 
 .link-btn { background: transparent; color: var(--muted); font-weight: 500; font-size: 13px; padding: 4px; text-decoration: underline; }
 html, body { overflow-x: hidden; }
+
+/* ---------- Navigation, Heute ---------- */
+.shell.with-nav { padding-bottom: calc(96px + env(safe-area-inset-bottom)); padding-top: max(16px, env(safe-area-inset-top)); }
+.topbar-actions button.icon { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; }
+.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+main { display: grid; gap: 16px; }
+
+.bottom-nav {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  width: min(560px, calc(100% - 24px));
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+  padding: 6px; z-index: 40;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border); border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.bottom-nav button {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: transparent; color: var(--muted); font-size: 11px; font-weight: 600;
+  padding: 8px 2px; border-radius: 14px;
+}
+.bottom-nav button.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.bottom-nav .nav-icon { display: grid; place-items: center; height: 24px; }
+
+.sub-tabs { margin-bottom: 4px; }
+.training { display: grid; gap: 14px; }
+
+.today { display: grid; gap: 14px; }
+.today-head h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+.today-head p { margin: 2px 0 0; }
+.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.card-head h2 { margin: 0; }
+.card.clickable { cursor: pointer; }
+.card.clickable:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+.today-plans { display: grid; gap: 8px; }
+.plan-card.big { padding: 12px 14px; }
+.plan-card.big .plan-name { font-size: 17px; }
+.plan-steps { margin: 8px 0 0; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); white-space: pre-wrap; }
+.today-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.mono { font-family: "JetBrains Mono", monospace; font-weight: 500; }
+
+.kv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 10px; }
+.kv-item { display: flex; flex-direction: column; gap: 2px; }
+.kv-item strong { font-size: 20px; }
+.kv-sub { font-size: 11px; color: var(--muted); }
+.kv-item.ok strong { color: var(--ok); }
+.kv-item.warn strong { color: #f5c04a; }
+.kv-item.bad strong { color: var(--danger); }
+
+.wx-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.wx { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 10px; background: var(--surface-2); text-align: center; }
+.wx-icon { font-size: 20px; }
+.tips { margin: 12px 0 0; padding-left: 18px; font-size: 13px; color: var(--text); display: grid; gap: 4px; }
+
+.progress-row { display: flex; align-items: baseline; gap: 8px; }
+.progress-row strong { font-size: 24px; }
+.progress { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 10px 0; }
+.progress > div { height: 100%; background: var(--accent); border-radius: 999px; }
+
+.placeholder { display: grid; gap: 8px; justify-items: start; padding: 24px; }
+.placeholder h2 { font-size: 20px; margin: 0; }
+.placeholder ul { margin: 4px 0; padding-left: 18px; display: grid; gap: 6px; }
+.ph-icon { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.badge { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+
+.modal.narrow { max-width: 480px; }
+.setting { display: grid; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.setting:last-child { border-bottom: 0; }
+.setting p { margin: 2px 0 0; }
+
+@media (max-width: 720px) {
+  .today-grid { grid-template-columns: 1fr; }
+  .kv strong { font-size: 18px; }
+}

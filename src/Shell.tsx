@@ -1,57 +1,85 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { callFunction, supabase } from "./supabase";
-import Dashboard from "./Dashboard";
-import Week from "./Week";
+import { callFunction } from "./supabase";
+import Today from "./Today";
+import Training from "./Training";
+import Placeholder from "./Placeholder";
+import Settings from "./Settings";
+import { IconCoach, IconFuel, IconGear, IconRace, IconSync, IconToday, IconTraining } from "./icons";
 
-type Tab = "week" | "overview";
+type Tab = "heute" | "training" | "coach" | "race" | "fuel";
+
+const TABS: { key: Tab; label: string; icon: JSX.Element }[] = [
+  { key: "heute", label: "Heute", icon: <IconToday /> },
+  { key: "training", label: "Training", icon: <IconTraining /> },
+  { key: "coach", label: "Coach", icon: <IconCoach /> },
+  { key: "race", label: "Race", icon: <IconRace /> },
+  { key: "fuel", label: "Fuel", icon: <IconFuel /> },
+];
+
+const fromHash = (): Tab => {
+  const h = location.hash.replace("#", "") as Tab;
+  return TABS.some((t) => t.key === h) ? h : "heute";
+};
 
 export default function Shell({ session }: { session: Session }) {
-  const [tab, setTab] = useState<Tab>(() => (location.hash === "#uebersicht" ? "overview" : "week"));
+  const [tab, setTab] = useState<Tab>(fromHash);
   const [refreshKey, setRefreshKey] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  const [settings, setSettings] = useState(false);
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const autoSynced = useRef(false);
 
   async function sync(days = 14, silent = false) {
     setSyncing(true);
     if (!silent) setNotice(null);
-    const { data, error } = await callFunction<{ synced: number }>("intervals-sync", { days });
+    const { data, error } = await callFunction<{ synced: number; wellness: number; wellness_error: string | null }>(
+      "intervals-sync",
+      { days },
+    );
     setSyncing(false);
     if (error) setNotice({ kind: "error", text: `Sync fehlgeschlagen: ${error}` });
-    else if (!silent) setNotice({ kind: "ok", text: `${data?.synced ?? 0} Aktivitäten synchronisiert` });
+    else if (!silent) {
+      setNotice({
+        kind: data?.wellness_error ? "error" : "ok",
+        text: `${data?.synced ?? 0} Aktivitäten, ${data?.wellness ?? 0} Tageswerte synchronisiert` +
+          (data?.wellness_error ? ` (Tageswerte: ${data.wellness_error})` : ""),
+      });
+    }
     setRefreshKey((k) => k + 1);
   }
 
-  // Beim Öffnen die letzten 14 Tage still nachladen
   useEffect(() => {
     if (autoSynced.current) return;
     autoSynced.current = true;
     sync(14, true);
   }, []);
 
+  useEffect(() => {
+    const onHash = () => setTab(fromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
   function go(t: Tab) {
     setTab(t);
-    history.replaceState(null, "", t === "overview" ? "#uebersicht" : "#woche");
+    history.replaceState(null, "", `#${t}`);
+    window.scrollTo({ top: 0 });
   }
 
   return (
-    <div className="shell">
+    <div className="shell with-nav">
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" />
           Trainingshub
         </div>
-        <nav className="tabs" aria-label="Bereiche">
-          <button className={tab === "week" ? "on" : ""} onClick={() => go("week")}>Woche</button>
-          <button className={tab === "overview" ? "on" : ""} onClick={() => go("overview")}>Übersicht</button>
-        </nav>
         <div className="topbar-actions">
-          <button className="ghost" onClick={() => sync(30)} disabled={syncing}>
-            {syncing ? "Sync …" : "Sync"}
+          <button className={`ghost icon ${syncing ? "spin" : ""}`} onClick={() => sync(30)} disabled={syncing} aria-label="Synchronisieren" title="Synchronisieren">
+            <IconSync size={18} />
           </button>
-          <button className="ghost" onClick={() => supabase.auth.signOut()} title={session.user.email}>
-            Abmelden
+          <button className="ghost icon" onClick={() => setSettings(true)} aria-label="Einstellungen" title="Einstellungen">
+            <IconGear size={18} />
           </button>
         </div>
       </header>
@@ -62,11 +90,57 @@ export default function Shell({ session }: { session: Session }) {
         </div>
       )}
 
-      {tab === "week" ? (
-        <Week refreshKey={refreshKey} />
-      ) : (
-        <Dashboard refreshKey={refreshKey} onImport={() => sync(365)} syncing={syncing} />
-      )}
+      <main>
+        {tab === "heute" && <Today refreshKey={refreshKey} onGoTraining={() => go("training")} />}
+        {tab === "training" && <Training refreshKey={refreshKey} onImport={() => sync(365)} syncing={syncing} />}
+        {tab === "coach" && (
+          <Placeholder
+            icon={<IconCoach size={28} />}
+            title="Coach"
+            intro="Dein Weg zu Hermannslauf und Rennsteig – Woche für Woche."
+            items={[
+              "Saisonplan mit Phasen (Grundlage, Aufbau, Spezifisch, Tapering)",
+              "Wochenumfang und Belastung passend zu Form und Terminen",
+              "Vorschläge, die du mit einem Tipp in den Wochenplan übernimmst",
+            ]}
+          />
+        )}
+        {tab === "race" && (
+          <Placeholder
+            icon={<IconRace size={28} />}
+            title="Race"
+            intro="Rennen durchplanen, bevor du an der Startlinie stehst."
+            items={[
+              "Strecke & Höhenprofil (GPX), Pacing pro Abschnitt",
+              "Wetter am Renntag zur Startzeit, Trink- und Salzbedarf",
+              "Verpflegungsplan aus deinem Fuel-Schrank: was, wann, wie viel Kohlenhydrate",
+            ]}
+          />
+        )}
+        {tab === "fuel" && (
+          <Placeholder
+            icon={<IconFuel size={28} />}
+            title="Fuel"
+            intro="Verpflegung beim Laufen und Ernährung im Alltag."
+            items={[
+              "Verpflegungsschrank: Gels, Riegel, Elektrolyte per Barcode-Scan",
+              "Verträglichkeit und Erfahrungen pro Produkt",
+              "Alltagsernährung: Kohlenhydrate passend zum Trainingstag",
+            ]}
+          />
+        )}
+      </main>
+
+      <nav className="bottom-nav" aria-label="Hauptnavigation">
+        {TABS.map((t) => (
+          <button key={t.key} className={tab === t.key ? "on" : ""} onClick={() => go(t.key)} aria-current={tab === t.key ? "page" : undefined}>
+            <span className="nav-icon">{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {settings && <Settings session={session} onClose={() => setSettings(false)} onSync={(d) => sync(d)} syncing={syncing} />}
     </div>
   );
 }
