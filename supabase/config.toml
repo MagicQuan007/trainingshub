@@ -4,3 +4,6 @@ project_id = "ttdagcbqqwjowhunrpjo"
 # damit sie auch mit den neuen Publishable/Secret-Keys sauber funktioniert.
 [functions.intervals-sync]
 verify_jwt = false
+
+[functions.intervals-plan]
+verify_jwt = false

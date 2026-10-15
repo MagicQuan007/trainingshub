@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import Login from "./Login";
-import Dashboard from "./Dashboard";
+import Shell from "./Shell";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -18,5 +18,5 @@ export default function App() {
   }, []);
 
   if (!ready) return <div className="center muted">Lädt …</div>;
-  return session ? <Dashboard session={session} /> : <Login />;
+  return session ? <Shell session={session} /> : <Login />;
 }

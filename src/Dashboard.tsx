@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
 import { supabase, type Activity } from "./supabase";
 import { dayLabel, duration, isRun, km, pace, TYPE_LABEL, weekStart } from "./format";
 
 const WEEKS = 8;
 
-export default function Dashboard({ session }: { session: Session }) {
+type Props = { refreshKey: number; onImport: () => void; syncing: boolean };
+
+export default function Dashboard({ refreshKey, onImport, syncing }: Props) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const since = new Date(Date.now() - 120 * 86_400_000).toISOString();
@@ -18,32 +18,14 @@ export default function Dashboard({ session }: { session: Session }) {
       .select("id,start_date,start_date_local,type,name,distance_m,moving_time_s,elevation_gain_m,avg_hr,training_load,avg_speed_ms")
       .gte("start_date", since)
       .order("start_date", { ascending: false });
-    if (error) setNotice({ kind: "error", text: error.message });
+    setError(error ? error.message : null);
     setActivities(data ?? []);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     load();
-  }, [load]);
-
-  async function sync(days = 90) {
-    setSyncing(true);
-    setNotice(null);
-    const { data, error } = await supabase.functions.invoke("intervals-sync", { body: { days } });
-    if (error) {
-      let detail = error.message;
-      try {
-        const ctx = await (error as { context?: Response }).context?.json();
-        if (ctx?.error) detail = ctx.error;
-      } catch { /* ignore */ }
-      setNotice({ kind: "error", text: `Sync fehlgeschlagen: ${detail}` });
-    } else {
-      setNotice({ kind: "ok", text: `${data.synced} Aktivitäten synchronisiert` });
-      await load();
-    }
-    setSyncing(false);
-  }
+  }, [load, refreshKey]);
 
   const weeks = useMemo(() => {
     const thisWeek = weekStart(new Date());
@@ -71,23 +53,8 @@ export default function Dashboard({ session }: { session: Session }) {
   const avg4 = weeks.slice(-5, -1).reduce((s, w) => s + w.km, 0) / 4;
 
   return (
-    <div className="shell">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark" />
-          Trainingshub
-        </div>
-        <div className="topbar-actions">
-          <button onClick={() => sync()} disabled={syncing}>
-            {syncing ? "Synchronisiere …" : "Mit Intervals syncen"}
-          </button>
-          <button className="ghost" onClick={() => supabase.auth.signOut()} title={session.user.email}>
-            Abmelden
-          </button>
-        </div>
-      </header>
-
-      {notice && <div className={`notice ${notice.kind}`}>{notice.text}</div>}
+    <>
+      {error && <div className="notice error">{error}</div>}
 
       <section className="stats">
         <Stat label="Diese Woche" value={`${km(current.km * 1000)} km`} sub={`${current.runs} Läufe · Load ${current.load}`} />
@@ -101,13 +68,8 @@ export default function Dashboard({ session }: { session: Session }) {
           {weeks.map((w, i) => (
             <div className="bar-col" key={w.start.toISOString()}>
               <span className="bar-value">{w.km >= 0.05 ? Math.round(w.km) : ""}</span>
-              <div
-                className={`bar ${i === weeks.length - 1 ? "current" : ""}`}
-                style={{ height: `${(w.km / maxKm) * 100}%` }}
-              />
-              <span className="bar-label">
-                {w.start.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}
-              </span>
+              <div className={`bar ${i === weeks.length - 1 ? "current" : ""}`} style={{ height: `${(w.km / maxKm) * 100}%` }} />
+              <span className="bar-label">{w.start.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}</span>
             </div>
           ))}
         </div>
@@ -120,7 +82,7 @@ export default function Dashboard({ session }: { session: Session }) {
         ) : activities.length === 0 ? (
           <div className="empty">
             <p className="muted">Noch keine Aktivitäten gespeichert.</p>
-            <button onClick={() => sync(365)} disabled={syncing}>Letztes Jahr importieren</button>
+            <button onClick={onImport} disabled={syncing}>Letztes Jahr importieren</button>
           </div>
         ) : (
           <ul className="list">
@@ -145,7 +107,7 @@ export default function Dashboard({ session }: { session: Session }) {
           </ul>
         )}
       </section>
-    </div>
+    </>
   );
 }
 
