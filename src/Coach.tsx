@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { callFunction, supabase } from "./supabase";
 import { addDays, isoWeek, parseYmd, ymd } from "./dates";
 import { duration, km } from "./format";
+import { loadFactorFromCheckins } from "./readiness";
 import {
-  DEFAULT_SETTINGS, PHASES, RACES, SEASON, fmtPace, proposeWeek, tidSeconds, weekFor, zones,
+  DEFAULT_SETTINGS, PHASES, RACES, SEASON, fmtPace, phaseFocus, proposeWeek, targetTid, tidSeconds, weekFor, zones,
   type CoachSettings, type PlanWeek, type Proposal,
 } from "./coach";
 
@@ -21,17 +22,23 @@ export default function Coach({ refreshKey }: { refreshKey: number }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [editZones, setEditZones] = useState(false);
+  const [checkScores, setCheckScores] = useState<number[]>([]);
+  const [factorOverride, setFactorOverride] = useState<number | null>(null);
 
   const current = weekFor(new Date());
   const selected = SEASON[weekIdx];
-  const proposals = useMemo(() => proposeWeek(selected, settings), [selected, settings]);
+  const auto = loadFactorFromCheckins(checkScores);
+  const factor = factorOverride ?? auto.factor;
+  const proposals = useMemo(() => proposeWeek(selected, settings, factor), [selected, settings, factor]);
   const proposedKm = proposals.filter((p) => p.sport === "Run").reduce((s, p) => s + (p.distance_m ?? 0), 0) / 1000;
 
   const load = useCallback(async () => {
-    const [st, acts] = await Promise.all([
+    const [st, acts, ck] = await Promise.all([
       supabase.from("user_settings").select("coach").maybeSingle(),
       supabase.from("activities").select("type,moving_time_s,avg_hr,raw").gte("start_date", addDays(new Date(), -28).toISOString()),
+      supabase.from("checkins").select("score").gte("date", ymd(addDays(new Date(), -7))),
     ]);
+    setCheckScores((ck.data ?? []).map((c) => c.score).filter((x): x is number => x != null));
     const s = { ...DEFAULT_SETTINGS, ...((st.data?.coach as Partial<CoachSettings>) ?? {}) };
     setSettings(s);
     setTid(tidSeconds(acts.data ?? [], s));
@@ -81,17 +88,17 @@ export default function Coach({ refreshKey }: { refreshKey: number }) {
     );
   }
 
-  async function saveSettings(s: CoachSettings) {
+  async function saveSettings(s: CoachSettings, reload = true) {
+    setSettings(s);
     const { error } = await supabase.from("user_settings").upsert({ coach: s, updated_at: new Date().toISOString() });
     if (error) return setMsg({ kind: "error", text: error.message });
-    setSettings(s);
     setEditZones(false);
-    load();
+    if (reload) load();
   }
 
   const tidTotal = tid ? tid[0] + tid[1] + tid[2] : 0;
   const tidPct = tid && tidTotal > 0 ? tid.map((x) => Math.round((x / tidTotal) * 100)) : null;
-  const target = current ? PHASES[current.phase].tid : PHASES.base.tid;
+  const target = targetTid(current?.phase ?? "base", settings.model);
   const maxKm = Math.max(...SEASON.map((w) => w.km));
   const today = ymd(new Date());
 
@@ -118,7 +125,15 @@ export default function Coach({ refreshKey }: { refreshKey: number }) {
           <h2>Jetzt: {current ? PHASES[current.phase].name : "–"}{current?.recovery ? " · Entlastung" : ""}</h2>
           {current && <span className="phase-dot" style={{ background: PHASES[current.phase].color }} />}
         </div>
-        {current && <p className="muted">{PHASES[current.phase].focus}{current.note ? ` – ${current.note}` : ""}</p>}
+        {current && <p className="muted">{phaseFocus(current.phase, settings.model)}{current.note ? ` – ${current.note}` : ""}</p>}
+
+        <div className="model-row">
+          <span className="muted small">Modell</span>
+          <div className="seg small">
+            <button className={settings.model !== "polarized" ? "on" : ""} onClick={() => saveSettings({ ...settings, model: "hybrid" }, false)}>Hybrid (Norwegisch → Polarisiert)</button>
+            <button className={settings.model === "polarized" ? "on" : ""} onClick={() => saveSettings({ ...settings, model: "polarized" }, false)}>Polarisiert</button>
+          </div>
+        </div>
 
         <div className="tid">
           <TidBar label="Soll (Phase)" pct={target} />
@@ -146,6 +161,20 @@ export default function Coach({ refreshKey }: { refreshKey: number }) {
               </div>
             </div>
             <button className="ghost icon" onClick={() => setWeekIdx(Math.min(SEASON.length - 1, weekIdx + 1))} disabled={weekIdx === SEASON.length - 1} aria-label="Nächste Woche">›</button>
+          </div>
+        </div>
+
+        <div className="factor">
+          <div>
+            <span className="muted small">Belastung aus deinen Check-ins</span>
+            <div className="small">{factorOverride != null ? "Manuell gewählt" : auto.reason}</div>
+          </div>
+          <div className="seg small">
+            {[1, 0.85, 0.7].map((f) => (
+              <button key={f} className={factor === f ? "on" : ""} onClick={() => setFactorOverride(f === auto.factor && factorOverride != null ? null : f)}>
+                {Math.round(f * 100)} %
+              </button>
+            ))}
           </div>
         </div>
 
@@ -283,11 +312,12 @@ function ZoneForm({ initial, onSave }: { initial: CoachSettings; onSave: (s: Coa
     return m ? Number(m[1]) * 60 + Number(m[2]) : NaN;
   };
   function submit() {
-    const s: CoachSettings = {
+    const nums = {
       lt1Hr: Number(v.lt1Hr), lt2Hr: Number(v.lt2Hr),
       lt1Pace: toSec(v.lt1Pace), lt2Pace: toSec(v.lt2Pace), vo2Pace: toSec(v.vo2Pace),
     };
-    if (Object.values(s).some((x) => !Number.isFinite(x) || x <= 0)) return setErr("Bitte alle Felder ausfüllen (Pace als m:ss)");
+    if (Object.values(nums).some((x) => !Number.isFinite(x) || x <= 0)) return setErr("Bitte alle Felder ausfüllen (Pace als m:ss)");
+    const s: CoachSettings = { ...initial, ...nums };
     if (s.lt1Hr >= s.lt2Hr) return setErr("LT1-Puls muss unter LT2-Puls liegen");
     if (!(s.lt1Pace > s.lt2Pace && s.lt2Pace > s.vo2Pace)) return setErr("Pace: LT1 langsamer als LT2, LT2 langsamer als 5-km-Tempo");
     onSave(s);

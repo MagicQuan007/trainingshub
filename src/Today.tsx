@@ -5,6 +5,7 @@ import { duration, isRun, km, pace, TYPE_LABEL, weekStart } from "./format";
 import { SPORTS, type PlannedWorkout } from "./workout";
 import { fetchHours, getPlace, runTips, weatherIcon, type Hour } from "./weather";
 import WorkoutEditor from "./WorkoutEditor";
+import CheckInCard from "./CheckInCard";
 
 type Wellness = {
   date: string;
@@ -112,6 +113,14 @@ export default function Today({ refreshKey, onGoTraining }: { refreshKey: number
         <h1>{greeting}</h1>
         <p className="muted">{now.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}</p>
       </div>
+
+      <CheckInCard
+        today={today}
+        planned={plannedToday}
+        hrv={{ today: todayW?.date === today ? todayW.hrv : null, avg: hrvAvg }}
+        rhr={{ today: todayW?.date === today ? todayW.resting_hr : null, avg: rhrAvg }}
+        onChanged={load}
+      />
 
       {/* Heute geplant */}
       <section className="card">

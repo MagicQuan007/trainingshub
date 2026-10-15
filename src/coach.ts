@@ -16,6 +16,7 @@ export type CoachSettings = {
   lt1Pace: number;   // s/km an LT1
   lt2Pace: number;   // s/km an LT2
   vo2Pace: number;   // s/km ≈ 5-km-Renntempo
+  model?: "hybrid" | "polarized"; // Hybrid: Basis norwegisch (Sub-Schwelle), danach polarisiert
 };
 
 /** Startwerte aus Garmin (LTHR 173, Prognose 5 km 19:12 / HM 1:33:33) – im Coach-Tab anpassbar */
@@ -25,7 +26,20 @@ export const DEFAULT_SETTINGS: CoachSettings = {
   lt1Pace: 305, // 5:05
   lt2Pace: 258, // 4:18
   vo2Pace: 230, // 3:50
+  model: "hybrid",
 };
+
+/** Ziel-Intensitätsverteilung je Phase und Modell */
+export function targetTid(phase: PhaseKey, model: CoachSettings["model"]): [number, number, number] {
+  if (model !== "polarized" && phase === "base") return [75, 22, 3];
+  return PHASES[phase].tid;
+}
+
+export function phaseFocus(phase: PhaseKey, model: CoachSettings["model"]): string {
+  if (model !== "polarized" && phase === "base")
+    return "Norwegisch light: 2 kontrollierte Sub-Schwellen-Einheiten (Puls-Deckel), Rest locker, schwere Kraft";
+  return PHASES[phase].focus;
+}
 
 export const fmtPace = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
@@ -163,7 +177,13 @@ function strength(date: string, phase: PhaseKey, recovery: boolean): Proposal {
 }
 
 /** Erzeugt Vorschläge für die Woche, die am Montag `start` beginnt */
-export function proposeWeek(week: PlanWeek, s: CoachSettings): Proposal[] {
+export function proposeWeek(baseWeek: PlanWeek, s: CoachSettings, factor = 1): Proposal[] {
+  // Belastungsfaktor aus den Check-ins: Umfang skalieren, bei < 0,9 nur eine harte Einheit, bei ≤ 0,7 Entlastungswoche
+  const week: PlanWeek = factor >= 1 || baseWeek.phase === "race"
+    ? baseWeek
+    : { ...baseWeek, km: Math.round(baseWeek.km * factor), longKm: Math.round(baseWeek.longKm * (1 + factor) / 2), recovery: baseWeek.recovery || factor <= 0.7 };
+  const dropSecondHard = factor < 0.9;
+  const hybrid = s.model !== "polarized";
   const d = (i: number) => ymd(addDays(parseYmd(week.start), i));
   const [eFrom, eTo] = easyRange(s);
   FALLBACK_PACE = s.lt1Pace + 25;
@@ -215,6 +235,17 @@ export function proposeWeek(week: PlanWeek, s: CoachSettings): Proposal[] {
         newSection("cooldown", { steps: [newStep({ minutes: 10 })] })],
     }, "Entlastungswoche: kurz und knackig, nicht ausbelasten."));
     tueKm = 7;
+  } else if (phase === "base" && hybrid) {
+    const subReps = week.km < 45 ? 6 : 8;
+    out.push(run(d(1), `Bahn: ${subReps} × 800 m Sub-Schwelle`, "Z2", {
+      sections: [newSection("warmup", { steps: [newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo })] }),
+        newSection("main", { repeat: subReps, steps: [
+          newStep({ kind: "distance", km: 0.8, paceFrom: p(s.lt2Pace + 18), paceTo: p(s.lt2Pace + 8), cue: "Kontrolliert" }),
+          newStep({ kind: "distance", km: 0.4, cue: "Traben", paceFrom: p(s.lt1Pace + 20) }),
+        ] }),
+        newSection("cooldown", { steps: [newStep({ minutes: 10 })] })],
+    }, `Norwegisch: Wolf-Tempo passt (knapp unter Schwelle ${p(s.lt2Pace)}). Puls-Deckel ~${s.lt2Hr - 8} bpm – wenn er drüber geht, langsamer. Es soll sich „angenehm hart“ anfühlen, nie wie ein Rennen.`));
+    tueKm = 13;
   } else if (phase === "base" || phase === "build" || phase === "taper") {
     const reps = phase === "taper" ? 6 : 8;
     out.push(run(d(1), `Bahn: ${reps} × 800 m (Z3)`, "Z3", {
@@ -246,14 +277,25 @@ export function proposeWeek(week: PlanWeek, s: CoachSettings): Proposal[] {
 
   // Samstag: zweite harte Einheit nur im Aufbau/Spezifisch (polarisiert: 2 × Z3/Woche)
   let satKm = 0;
-  if (!recovery && phase === "build") {
+  if (!recovery && phase === "base" && hybrid && !dropSecondHard && !week.note?.startsWith("Wiedereinstieg")) {
+    const subSets = week.km < 46 ? 2 : 3;
+    out.push(run(d(5), `Sub-Schwelle: ${subSets} × 10 min`, "Z2", {
+      sections: [newSection("warmup", { steps: [newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo })] }),
+        newSection("main", { repeat: subSets, steps: [
+          newStep({ minutes: 10, paceFrom: p(s.lt2Pace + 27), paceTo: p(s.lt2Pace + 17), cue: "Sub-Schwelle" }),
+          newStep({ minutes: 1, cue: "Traben" }),
+        ] }),
+        newSection("cooldown", { steps: [newStep({ minutes: 10 })] })],
+    }, `Gleichmäßig, Puls unter ~${s.lt2Hr - 8} bpm. Sprechen in kurzen Sätzen muss gehen.`));
+    satKm = 12;
+  } else if (!recovery && phase === "build" && !dropSecondHard) {
     out.push(run(d(5), "Bergsprints: 8 × 90 s", "Z3", {
       sections: [newSection("warmup", { steps: [newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo })] }),
         newSection("main", { title: "Bergauf", repeat: 8, steps: [newStep({ minutes: 1, seconds: 30, cue: "Bergauf hart" }), newStep({ minutes: 2, seconds: 30, cue: "Runter traben" })] }),
         newSection("cooldown", { steps: [newStep({ minutes: 10 })] })],
     }, "Steiler Hang (6–10 %). Nach Gefühl hart (RPE 8/10), Pace ignorieren."));
     satKm = 11;
-  } else if (!recovery && phase === "specific") {
+  } else if (!recovery && phase === "specific" && !dropSecondHard) {
     out.push(run(d(5), "Hügel-Tempo + Bergab-Technik", "Z2", {
       sections: [newSection("warmup", { steps: [newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo })] }),
         newSection("main", { title: "Renntempo wellig", repeat: 3, steps: [newStep({ minutes: 8, cue: "Renngefühl Hermannslauf" }), newStep({ minutes: 3, cue: "Locker" })] }),
