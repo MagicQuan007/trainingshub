@@ -5,6 +5,7 @@ import Today from "./Today";
 import Training from "./Training";
 import Placeholder from "./Placeholder";
 import Coach from "./Coach";
+import Fuel from "./Fuel";
 import Settings from "./Settings";
 import { IconCoach, IconFuel, IconGear, IconRace, IconSync, IconToday, IconTraining } from "./icons";
 
@@ -107,18 +108,7 @@ export default function Shell({ session }: { session: Session }) {
             ]}
           />
         )}
-        {tab === "fuel" && (
-          <Placeholder
-            icon={<IconFuel size={28} />}
-            title="Fuel"
-            intro="Verpflegung beim Laufen und Ernährung im Alltag."
-            items={[
-              "Verpflegungsschrank: Gels, Riegel, Elektrolyte per Barcode-Scan",
-              "Verträglichkeit und Erfahrungen pro Produkt",
-              "Alltagsernährung: Kohlenhydrate passend zum Trainingstag",
-            ]}
-          />
-        )}
+        {tab === "fuel" && <Fuel />}
       </main>
 
       <nav className="bottom-nav" aria-label="Hauptnavigation">
