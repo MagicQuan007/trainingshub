@@ -7,3 +7,5 @@ verify_jwt = false
 
 [functions.intervals-plan]
 verify_jwt = false
+
+# Deploy erneut ausgelöst (setup-cli war sporadisch fehlgeschlagen)
