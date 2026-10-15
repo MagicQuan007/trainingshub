@@ -6,6 +6,7 @@ import { SPORTS, type PlannedWorkout } from "./workout";
 import { fetchHours, getPlace, runTips, weatherIcon, type Hour } from "./weather";
 import WorkoutEditor from "./WorkoutEditor";
 import CheckInCard from "./CheckInCard";
+import MealsToday from "./MealsToday";
 
 type Wellness = {
   date: string;
@@ -32,7 +33,7 @@ function formLabel(tsb: number) {
   return { text: "Hohe Ermüdung", tone: "bad" };
 }
 
-export default function Today({ refreshKey, onGoTraining }: { refreshKey: number; onGoTraining: () => void }) {
+export default function Today({ refreshKey, onGoTraining, onGoFuel }: { refreshKey: number; onGoTraining: () => void; onGoFuel: () => void }) {
   const now = new Date();
   const today = ymd(now);
   const ws = weekStart(now);
@@ -148,6 +149,8 @@ export default function Today({ refreshKey, onGoTraining }: { refreshKey: number
           </div>
         )}
       </section>
+
+      <MealsToday refreshKey={refreshKey} onOpen={() => { try { localStorage.setItem("th.fuelView", "meals"); } catch { /* ignore */ } onGoFuel(); }} />
 
       <div className="today-grid">
         {/* Körper & Form */}

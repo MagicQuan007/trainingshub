@@ -5,7 +5,7 @@ import Today from "./Today";
 import Training from "./Training";
 import Placeholder from "./Placeholder";
 import Coach from "./Coach";
-import Fuel from "./Fuel";
+import FuelTab from "./FuelTab";
 import Settings from "./Settings";
 import { IconCoach, IconFuel, IconGear, IconRace, IconSync, IconToday, IconTraining } from "./icons";
 
@@ -93,7 +93,7 @@ export default function Shell({ session }: { session: Session }) {
       )}
 
       <main>
-        {tab === "heute" && <Today refreshKey={refreshKey} onGoTraining={() => go("training")} />}
+        {tab === "heute" && <Today refreshKey={refreshKey} onGoTraining={() => go("training")} onGoFuel={() => go("fuel")} />}
         {tab === "training" && <Training refreshKey={refreshKey} onImport={() => sync(365)} syncing={syncing} />}
         {tab === "coach" && <Coach refreshKey={refreshKey} />}
         {tab === "race" && (
@@ -108,7 +108,7 @@ export default function Shell({ session }: { session: Session }) {
             ]}
           />
         )}
-        {tab === "fuel" && <Fuel />}
+        {tab === "fuel" && <FuelTab />}
       </main>
 
       <nav className="bottom-nav" aria-label="Hauptnavigation">
