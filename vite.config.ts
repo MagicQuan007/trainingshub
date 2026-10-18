@@ -5,4 +5,12 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: "/trainingshub/",
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: "index.html",
+        crew: "crew.html", // Laufgruppen-Kalender
+      },
+    },
+  },
 });

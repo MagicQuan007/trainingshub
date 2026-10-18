@@ -54,6 +54,14 @@ export default function Settings({ session, onClose, onSync, syncing }: Props) {
 
           <div className="setting">
             <div>
+              <strong>Runcrew-Kalender</strong>
+              <p className="muted small">Gemeinsamer Kalender für die Laufgruppe – Mitglieder freischalten unter „Mitglieder“.</p>
+            </div>
+            <a href={import.meta.env.BASE_URL + "crew.html"}><button className="ghost small">Kalender öffnen</button></a>
+          </div>
+
+          <div className="setting">
+            <div>
               <strong>Konto</strong>
               <p className="muted small">{session.user.email}</p>
             </div>

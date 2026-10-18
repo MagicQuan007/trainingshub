@@ -2,6 +2,9 @@
 // Body: { action: "push" | "delete", id: "<planned_workouts.id>" }
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Nur der App-Owner darf Intervals nutzen (Crew-Mitglieder haben eigene Logins)
+const OWNER_ID = "d3cb85e2-30e3-415d-9b7e-f03d49b53d78";
+
 const ALLOWED_ORIGINS = ["https://magicquan007.github.io", "http://localhost:5173"];
 
 function cors(origin: string | null) {
@@ -40,6 +43,7 @@ Deno.serve(async (req) => {
   );
   const { data: userData, error: userError } = await supabase.auth.getUser(token);
   if (userError || !userData.user) return json({ error: "Session ungültig" }, 401, origin);
+  if (userData.user.id !== OWNER_ID) return json({ error: "Keine Berechtigung" }, 403, origin);
 
   let body: { action?: string; id?: string };
   try {
