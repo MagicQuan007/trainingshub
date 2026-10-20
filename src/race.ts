@@ -44,6 +44,16 @@ export const SEED_RACES = [
     notes: "LAZ Nord, Am Schlangenbach 93 · 2 Runden à ~10,5 km, flach, Asphalt, DLV-vermessen · 1 Getränkestelle + Ziel.",
   },
   {
+    key: "xmas-cross-2026", name: "Weihnachts-Crosslauf Borgholzhausen", date: "2026-12-13", start_time: null, distance_km: 16, gain_m: null, loss_m: null,
+    lat: 52.1026, lon: 8.305, settings: { aidStations: true },
+    notes: "Trail-&-Road-Cup #5 · 2 Runden über den Barenberg, Ravensberger Stadion · Startzeit: rsv-borgholzhausen.de/weihnachtscross",
+  },
+  {
+    key: "luisenturm-2027", name: "Luisenturmlauf Borgholzhausen", date: "2027-03-07", start_time: null, distance_km: 21.1, gain_m: null, loss_m: null,
+    lat: 52.1026, lon: 8.305, settings: { aidStations: true },
+    notes: "Trail-&-Road-Cup #6 · Rundkurs über den Luisenturm (Straße + Waldwege), Start/Ziel Ravensberger Stadion · Startzeit folgt",
+  },
+  {
     key: "hermann", name: "Hermannslauf", date: "2027-04-25", start_time: "11:00", distance_km: 31.1, gain_m: 510, loss_m: 710,
     lat: 51.9114, lon: 8.8394, settings: { targetTimeS: 2 * 3600 + 20 * 60, aidStations: true },
     notes: "Hermannsdenkmal → Sparrenburg Bielefeld. Startzeit bitte mit der Ausschreibung abgleichen.",
