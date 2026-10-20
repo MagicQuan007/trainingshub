@@ -105,6 +105,9 @@ export default function Today({ refreshKey, onGoTraining, onGoFuel }: { refreshK
   const doneKm = weekDone.filter((a) => isRun(a.type)).reduce((s, a) => s + (a.distance_m ?? 0), 0) / 1000;
   const pct = plannedKm > 0 ? Math.min(100, (doneKm / plannedKm) * 100) : 0;
   const lastRun = weekDone[0];
+  const doneToday = weekDone.filter((a) => (a.start_date_local ?? a.start_date).slice(0, 10) === today).reverse();
+  const doneTodayKm = doneToday.reduce((s, a) => s + (a.distance_m ?? 0), 0);
+  const doneTodayS = doneToday.reduce((s, a) => s + (a.moving_time_s ?? 0), 0);
 
   const greeting = now.getHours() < 11 ? "Guten Morgen" : now.getHours() < 18 ? "Hallo" : "Guten Abend";
 
@@ -130,7 +133,7 @@ export default function Today({ refreshKey, onGoTraining, onGoFuel }: { refreshK
           <button className="ghost small" onClick={() => setEditor({})}>+ Einheit</button>
         </div>
         {plannedToday.length === 0 ? (
-          <p className="muted">Keine Einheit geplant – Ruhetag oder freies Training.</p>
+          doneToday.length === 0 && <p className="muted">Keine Einheit geplant – Ruhetag oder freies Training.</p>
         ) : (
           <div className="today-plans">
             {plannedToday.map((w) => (
@@ -146,6 +149,31 @@ export default function Today({ refreshKey, onGoTraining, onGoFuel }: { refreshK
                 {w.notes && <span className="muted small">{w.notes}</span>}
               </button>
             ))}
+          </div>
+        )}
+        {doneToday.length > 0 && (
+          <div className="done-today">
+            <div className="done-head">
+              <span className="done-badge">✓ Erledigt</span>
+              <span className="muted small">
+                {doneTodayKm > 0 ? `${km(doneTodayKm)} km · ` : ""}{duration(doneTodayS)}
+                {doneToday.length > 1 ? ` · ${doneToday.length} Abschnitte` : ""}
+              </span>
+            </div>
+            <ul className="done-list">
+              {doneToday.map((a) => (
+                <li key={a.id}>
+                  <span className="done-time mono muted small">{(a.start_date_local ?? a.start_date).slice(11, 16)}</span>
+                  <span className="done-name">{a.name ?? TYPE_LABEL[a.type ?? ""] ?? a.type}</span>
+                  <span className="done-meta mono small">
+                    {a.distance_m ? `${km(a.distance_m)} km` : ""}
+                    {a.distance_m ? " · " : ""}{duration(a.moving_time_s)}
+                    {isRun(a.type) && a.distance_m ? ` · ${pace(a.distance_m, a.moving_time_s)}` : ""}
+                    {a.avg_hr ? ` · ♥ ${Math.round(a.avg_hr)}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </section>

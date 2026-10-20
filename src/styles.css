@@ -518,3 +518,10 @@ main { display: grid; gap: 16px; }
   .splits td:nth-child(4), .splits th:nth-child(4) { display: none; }
 }
 .elev-src { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0 10px; }
+.done-today { display: grid; gap: 8px; margin-top: 4px; }
+.done-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.done-badge { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.done-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.done-list li { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: baseline; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+.done-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) { .done-list li { grid-template-columns: 40px 1fr; } .done-meta { grid-column: 2; } }
