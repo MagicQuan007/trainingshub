@@ -5,6 +5,7 @@ import { duration, isRun, km, pace, TYPE_LABEL, weekStart } from "./format";
 import { SPORTS, type PlannedWorkout } from "./workout";
 import WorkoutEditor from "./WorkoutEditor";
 import { ensureSeedRaces, fmtHMS } from "./race";
+import { applyPlanImports } from "./planImports";
 
 const SPORT_LABEL = Object.fromEntries(SPORTS.map((s) => [s.value, s.label]));
 
@@ -26,6 +27,7 @@ export default function Week({ refreshKey, onGoRace }: { refreshKey: number; onG
   const load = useCallback(async () => {
     setError(null);
     await ensureSeedRaces(supabase);
+    await applyPlanImports();
     const [p, a, r] = await Promise.all([
       supabase.from("planned_workouts").select("*").gte("date", from).lte("date", to).order("date"),
       supabase

@@ -7,6 +7,7 @@ import { fetchHours, getPlace, runTips, weatherIcon, type Hour } from "./weather
 import WorkoutEditor from "./WorkoutEditor";
 import CheckInCard from "./CheckInCard";
 import MealsToday from "./MealsToday";
+import { applyPlanImports } from "./planImports";
 import { ensureSeedRaces, fmtHMS } from "./race";
 
 type NextRace = { id: string; name: string; date: string; start_time: string | null; distance_km: number; settings: { targetTimeS?: number } | null };
@@ -54,6 +55,7 @@ export default function Today({ refreshKey, onGoTraining, onGoFuel, onGoRace }: 
   const place = getPlace();
 
   const load = useCallback(async () => {
+    await applyPlanImports();
     const [p, a, w] = await Promise.all([
       supabase.from("planned_workouts").select("*").gte("date", weekFrom).lte("date", weekTo).order("date"),
       supabase
