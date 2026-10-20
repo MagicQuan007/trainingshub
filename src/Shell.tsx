@@ -3,9 +3,9 @@ import type { Session } from "@supabase/supabase-js";
 import { callFunction } from "./supabase";
 import Today from "./Today";
 import Training from "./Training";
-import Placeholder from "./Placeholder";
 import Coach from "./Coach";
 import FuelTab from "./FuelTab";
+import Race from "./Race";
 import Settings from "./Settings";
 import { IconCoach, IconFuel, IconGear, IconRace, IconSync, IconToday, IconTraining } from "./icons";
 
@@ -96,18 +96,7 @@ export default function Shell({ session }: { session: Session }) {
         {tab === "heute" && <Today refreshKey={refreshKey} onGoTraining={() => go("training")} onGoFuel={() => go("fuel")} />}
         {tab === "training" && <Training refreshKey={refreshKey} onImport={() => sync(365)} syncing={syncing} />}
         {tab === "coach" && <Coach refreshKey={refreshKey} />}
-        {tab === "race" && (
-          <Placeholder
-            icon={<IconRace size={28} />}
-            title="Race"
-            intro="Rennen durchplanen, bevor du an der Startlinie stehst."
-            items={[
-              "Strecke & Höhenprofil (GPX), Pacing pro Abschnitt",
-              "Wetter am Renntag zur Startzeit, Trink- und Salzbedarf",
-              "Verpflegungsplan aus deinem Fuel-Schrank: was, wann, wie viel Kohlenhydrate",
-            ]}
-          />
-        )}
+        {tab === "race" && <Race />}
         {tab === "fuel" && <FuelTab />}
       </main>
 
