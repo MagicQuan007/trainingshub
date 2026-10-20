@@ -3,8 +3,8 @@ import { supabase } from "./supabase";
 import type { FuelProduct } from "./fuel";
 import { TOLERANCE } from "./fuel";
 import {
-  SEED_RACES, clockAt, computeSplits, fetchRaceWeather, fmtHMS, fmtPaceS, hydration, parseGpx, planFuel,
-  type Race as RaceT, type RaceSettings, type RaceWeather, type FuelStep,
+  SEED_RACES, clockAt, computeSplits, fetchRaceWeather, fetchTerrain, fmtHMS, fmtPaceS, gainLoss, hydration, parseGpx, planFuel,
+  type Race as RaceT, type RaceSettings, type RaceWeather, type FuelStep, type Profile,
 } from "./race";
 import { carbGuidance } from "./fuel";
 
@@ -25,6 +25,7 @@ export default function Race() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [edit, setEdit] = useState<RaceT | "new" | null>(null);
+  const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<number | null>(null);
 
@@ -95,20 +96,65 @@ export default function Race() {
     }, 600);
   }
 
+  async function saveProfile(id: string, profile: Profile, extra: Record<string, unknown> = {}) {
+    const { gain, loss } = gainLoss(profile.points);
+    const { error } = await supabase.from("races").update({
+      profile, gain_m: gain, loss_m: loss, ...extra, updated_at: new Date().toISOString(),
+    }).eq("id", id);
+    if (error) throw new Error(error.message);
+    return { gain, loss };
+  }
+
+  /** Geländehöhen holen und als aktive Quelle setzen; GPS-Höhen bleiben zum Umschalten erhalten */
+  async function withTerrain(p: Profile): Promise<Profile> {
+    const dem = await fetchTerrain(p.coords!, p.step);
+    return { ...p, dem, points: dem, source: "dem" };
+  }
+
   async function onGpx(file: File) {
     if (!race) return;
     setMsg(null);
+    setBusy(true);
     try {
       const g = parseGpx(await file.text());
-      const { error } = await supabase.from("races").update({
-        profile: g.profile, distance_km: g.distanceKm, gain_m: g.gain, loss_m: g.loss, lat: g.start.lat, lon: g.start.lon,
-        updated_at: new Date().toISOString(),
-      }).eq("id", race.id);
-      if (error) throw new Error(error.message);
-      setMsg({ kind: "ok", text: `GPX geladen: ${g.distanceKm} km, +${g.gain} / −${g.loss} Hm` });
+      let profile = g.profile;
+      let note = "";
+      try {
+        profile = await withTerrain(profile);
+      } catch {
+        note = " – Geländehöhen gerade nicht abrufbar, GPS-Höhen verwendet";
+      }
+      const gps = gainLoss(g.profile.points);
+      const { gain, loss } = await saveProfile(race.id, profile, { distance_km: g.distanceKm, lat: g.start.lat, lon: g.start.lon });
+      setMsg({
+        kind: "ok",
+        text: profile.source === "dem"
+          ? `GPX geladen: ${g.distanceKm} km · Gelände +${gain} / −${loss} Hm (GPS-Datei: +${gps.gain} / −${gps.loss})`
+          : `GPX geladen: ${g.distanceKm} km, +${gain} / −${loss} Hm${note}`,
+      });
       load();
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function setSource(src: "gps" | "dem") {
+    if (!race?.profile) return;
+    setMsg(null);
+    setBusy(true);
+    try {
+      let p = race.profile;
+      if (src === "dem" && !p.dem) p = await withTerrain({ ...p, gps: p.gps ?? p.points });
+      else p = { ...p, gps: p.gps ?? p.points, points: src === "dem" ? p.dem! : (p.gps ?? p.points), source: src };
+      const { gain, loss } = await saveProfile(race.id, p);
+      setMsg({ kind: "ok", text: `${src === "dem" ? "Geländehöhen" : "GPS-Höhen"} aktiv: +${gain} / −${loss} Hm` });
+      load();
+    } catch (e) {
+      setMsg({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -165,9 +211,23 @@ export default function Race() {
           <section className="card">
             <div className="card-head">
               <h2>Strecke & Pacing</h2>
-              <button className="ghost small" onClick={() => fileRef.current?.click()}>{race.profile ? "GPX ersetzen" : "GPX hochladen"}</button>
-              <input ref={fileRef} type="file" accept=".gpx,application/gpx+xml" hidden onChange={(e) => e.target.files?.[0] && onGpx(e.target.files[0])} />
+              <button className="ghost small" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? "Lädt …" : race.profile ? "GPX ersetzen" : "GPX hochladen"}</button>
+              <input ref={fileRef} type="file" accept=".gpx,application/gpx+xml" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onGpx(f); }} />
             </div>
+            {race.profile && (
+              race.profile.coords ? (
+                <div className="elev-src">
+                  <span className="muted small">Höhen:</span>
+                  <div className="seg">
+                    <button className={race.profile.source === "dem" ? "on" : ""} disabled={busy} onClick={() => race.profile!.source !== "dem" && setSource("dem")}>Gelände</button>
+                    <button className={race.profile.source !== "dem" ? "on" : ""} disabled={busy} onClick={() => race.profile!.source === "dem" && setSource("gps")}>GPS-Datei</button>
+                  </div>
+                  <span className="muted small">{race.profile.source === "dem" ? "Copernicus-Höhenmodell – unabhängig vom Uhren-/GPS-Rauschen" : "Höhen wie in der Datei aufgezeichnet"}</span>
+                </div>
+              ) : (
+                <p className="hint small">Lade die GPX-Datei einmal neu hoch, dann können die Höhen mit dem Geländemodell korrigiert werden.</p>
+              )
+            )}
             {race.profile ? (
               <ProfileChart race={race} steps={plan?.steps ?? []} />
             ) : (

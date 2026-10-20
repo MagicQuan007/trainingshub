@@ -11,7 +11,15 @@ export type RaceSettings = {
   aidStations?: boolean;    // Verpflegungsstellen nutzen (Wasser nachfüllen)
 };
 
-export type Profile = { step: number; points: number[] }; // Höhe alle `step` Meter
+/** Höhe alle `step` Meter. `points` ist die aktive Quelle; `gps`/`dem` halten beide Varianten zum Umschalten. */
+export type Profile = {
+  step: number;
+  points: number[];
+  source?: "gps" | "dem";
+  gps?: number[];
+  dem?: number[];
+  coords?: [number, number][]; // Lat/Lon je Abtastpunkt (für die Geländeabfrage)
+};
 
 export type Race = {
   id: string;
@@ -72,32 +80,64 @@ export function parseGpx(xml: string, step = 100) {
   // Neu abtasten (lineare Interpolation)
   const n = Math.floor(total / step);
   const ele: number[] = [];
+  const coords: [number, number][] = [];
+  const r5 = (x: number) => Math.round(x * 1e5) / 1e5;
   let j = 0;
   for (let k = 0; k <= n; k++) {
     const d = k * step;
     while (j < dist.length - 2 && dist[j + 1] < d) j++;
     const t = dist[j + 1] === dist[j] ? 0 : (d - dist[j]) / (dist[j + 1] - dist[j]);
     ele.push(raw[j].ele + t * (raw[j + 1].ele - raw[j].ele));
+    coords.push([r5(raw[j].lat + t * (raw[j + 1].lat - raw[j].lat)), r5(raw[j].lon + t * (raw[j + 1].lon - raw[j].lon))]);
   }
   // Glätten (gleitender Mittelwert über ±200 m) gegen GPS-Rauschen
-  const w = Math.max(1, Math.round(200 / step));
-  const smooth = ele.map((_, i) => {
+  const smooth = smoothElev(ele, step, 200);
+  const { gain, loss } = gainLoss(smooth);
+  return {
+    profile: { step, points: smooth, source: "gps", gps: smooth, coords } as Profile,
+    distanceKm: Math.round((total / 1000) * 10) / 10,
+    gain,
+    loss,
+    start: { lat: raw[0].lat, lon: raw[0].lon },
+  };
+}
+
+function smoothElev(ele: number[], step: number, radiusM: number) {
+  const w = Math.max(1, Math.round(radiusM / step));
+  return ele.map((_, i) => {
     let s = 0, c = 0;
     for (let k = Math.max(0, i - w); k <= Math.min(ele.length - 1, i + w); k++) { s += ele[k]; c++; }
     return Math.round((s / c) * 10) / 10;
   });
+}
+
+export function gainLoss(points: number[]) {
   let gain = 0, loss = 0;
-  for (let i = 1; i < smooth.length; i++) {
-    const d = smooth[i] - smooth[i - 1];
+  for (let i = 1; i < points.length; i++) {
+    const d = points[i] - points[i - 1];
     if (d > 0) gain += d; else loss -= d;
   }
-  return {
-    profile: { step, points: smooth } as Profile,
-    distanceKm: Math.round((total / 1000) * 10) / 10,
-    gain: Math.round(gain),
-    loss: Math.round(loss),
-    start: { lat: raw[0].lat, lon: raw[0].lon },
-  };
+  return { gain: Math.round(gain), loss: Math.round(loss) };
+}
+
+/**
+ * Echte Geländehöhe je Streckenpunkt aus dem Copernicus-Höhenmodell (GLO-90) über Open-Meteo.
+ * Ersetzt verrauschte GPS-/Barometer-Höhen. Max. 100 Punkte pro Anfrage → in Blöcken.
+ */
+export async function fetchTerrain(coords: [number, number][], step: number): Promise<number[]> {
+  const out: number[] = [];
+  for (let i = 0; i < coords.length; i += 100) {
+    const chunk = coords.slice(i, i + 100);
+    const url = "https://api.open-meteo.com/v1/elevation?latitude=" + chunk.map((c) => c[0]).join(",") + "&longitude=" + chunk.map((c) => c[1]).join(",");
+    let res = await fetch(url);
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, 1500)); res = await fetch(url); }
+    if (!res.ok) throw new Error(`Geländehöhen nicht verfügbar (HTTP ${res.status})`);
+    const j = (await res.json()) as { elevation?: number[] };
+    if (!j.elevation || j.elevation.length !== chunk.length) throw new Error("Geländehöhen unvollständig");
+    out.push(...j.elevation);
+  }
+  // Leicht glätten (±100 m): das Höhenmodell ist sauber, nur Rasterstufen ausgleichen
+  return smoothElev(out, step, 100);
 }
 
 // ---------------------------------------------------------------- Pacing
