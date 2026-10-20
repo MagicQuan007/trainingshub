@@ -39,6 +39,11 @@ export type Race = {
 
 export const SEED_RACES = [
   {
+    key: "djk-gt-2026", name: "Gütersloher DJK Halbmarathon", date: "2026-10-25", start_time: "11:20", distance_km: 21.1, gain_m: null, loss_m: null,
+    lat: 51.9254, lon: 8.393, settings: { targetTimeS: 1 * 3600 + 32 * 60 + 30, aidStations: true },
+    notes: "LAZ Nord, Am Schlangenbach 93 · 2 Runden à ~10,5 km, flach, Asphalt, DLV-vermessen · 1 Getränkestelle + Ziel.",
+  },
+  {
     key: "hermann", name: "Hermannslauf", date: "2027-04-25", start_time: "11:00", distance_km: 31.1, gain_m: 510, loss_m: 710,
     lat: 51.9114, lon: 8.8394, settings: { targetTimeS: 2 * 3600 + 20 * 60, aidStations: true },
     notes: "Hermannsdenkmal → Sparrenburg Bielefeld. Startzeit bitte mit der Ausschreibung abgleichen.",
@@ -49,6 +54,24 @@ export const SEED_RACES = [
     notes: "Eisenach Markt (6:00) → Schmiedefeld. ~15 Verpflegungsstellen, Zielschluss 18:00. Ziel: gut ankommen.",
   },
 ];
+
+/** Legt vorbefüllte Rennen an, die noch fehlen – jedes nur einmal (gelöschte kommen nicht zurück). */
+export async function ensureSeedRaces(sb: { from: (t: string) => any }) {
+  const seenKey = (k: string) => `th.seed.${k}`;
+  const seen = (k: string) => { try { return localStorage.getItem(seenKey(k)) === "1"; } catch { return false; } };
+  const mark = (k: string) => { try { localStorage.setItem(seenKey(k), "1"); } catch { /* ignore */ } };
+  const today = new Date().toISOString().slice(0, 10);
+  const candidates = SEED_RACES.filter((r) => !seen(r.key) && r.date >= today);
+  if (!candidates.length) return;
+  const { data } = await sb.from("races").select("key");
+  const have = new Set(((data as { key: string | null }[]) ?? []).map((r) => r.key));
+  const missing = candidates.filter((r) => !have.has(r.key));
+  if (missing.length) {
+    const { error } = await sb.from("races").insert(missing);
+    if (error) return;
+  }
+  candidates.forEach((r) => mark(r.key));
+}
 
 // ---------------------------------------------------------------- GPX
 

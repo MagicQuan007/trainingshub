@@ -2,9 +2,9 @@ import { useState } from "react";
 import Week from "./Week";
 import Dashboard from "./Dashboard";
 
-type Props = { refreshKey: number; onImport: () => void; syncing: boolean };
+type Props = { refreshKey: number; onImport: () => void; syncing: boolean; onGoRace: () => void };
 
-export default function Training({ refreshKey, onImport, syncing }: Props) {
+export default function Training({ refreshKey, onImport, syncing, onGoRace }: Props) {
   const [view, setView] = useState<"week" | "stats">("week");
   return (
     <div className="training">
@@ -13,7 +13,7 @@ export default function Training({ refreshKey, onImport, syncing }: Props) {
         <button className={view === "stats" ? "on" : ""} onClick={() => setView("stats")}>Statistik</button>
       </div>
       {view === "week" ? (
-        <Week refreshKey={refreshKey} />
+        <Week refreshKey={refreshKey} onGoRace={onGoRace} />
       ) : (
         <Dashboard refreshKey={refreshKey} onImport={onImport} syncing={syncing} />
       )}

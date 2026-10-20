@@ -93,8 +93,8 @@ export default function Shell({ session }: { session: Session }) {
       )}
 
       <main>
-        {tab === "heute" && <Today refreshKey={refreshKey} onGoTraining={() => go("training")} onGoFuel={() => go("fuel")} />}
-        {tab === "training" && <Training refreshKey={refreshKey} onImport={() => sync(365)} syncing={syncing} />}
+        {tab === "heute" && <Today refreshKey={refreshKey} onGoTraining={() => go("training")} onGoFuel={() => go("fuel")} onGoRace={() => go("race")} />}
+        {tab === "training" && <Training refreshKey={refreshKey} onImport={() => sync(365)} syncing={syncing} onGoRace={() => go("race")} />}
         {tab === "coach" && <Coach refreshKey={refreshKey} />}
         {tab === "race" && <Race />}
         {tab === "fuel" && <FuelTab />}

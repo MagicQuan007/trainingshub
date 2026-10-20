@@ -4,15 +4,19 @@ import { addDays, isoWeek, ymd } from "./dates";
 import { duration, isRun, km, pace, TYPE_LABEL, weekStart } from "./format";
 import { SPORTS, type PlannedWorkout } from "./workout";
 import WorkoutEditor from "./WorkoutEditor";
+import { ensureSeedRaces, fmtHMS } from "./race";
 
 const SPORT_LABEL = Object.fromEntries(SPORTS.map((s) => [s.value, s.label]));
 
-export default function Week({ refreshKey }: { refreshKey: number }) {
+type WeekRace = { id: string; name: string; date: string; start_time: string | null; distance_km: number; settings: { targetTimeS?: number } | null };
+
+export default function Week({ refreshKey, onGoRace }: { refreshKey: number; onGoRace: () => void }) {
   const [start, setStart] = useState(() => weekStart(new Date()));
   const [planned, setPlanned] = useState<PlannedWorkout[]>([]);
   const [done, setDone] = useState<Activity[]>([]);
   const [editor, setEditor] = useState<{ date: string; existing?: PlannedWorkout } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [races, setRaces] = useState<WeekRace[]>([]);
   const [retrying, setRetrying] = useState<string | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
@@ -21,7 +25,8 @@ export default function Week({ refreshKey }: { refreshKey: number }) {
 
   const load = useCallback(async () => {
     setError(null);
-    const [p, a] = await Promise.all([
+    await ensureSeedRaces(supabase);
+    const [p, a, r] = await Promise.all([
       supabase.from("planned_workouts").select("*").gte("date", from).lte("date", to).order("date"),
       supabase
         .from("activities")
@@ -29,7 +34,9 @@ export default function Week({ refreshKey }: { refreshKey: number }) {
         .gte("start_date", addDays(days[0], -1).toISOString())
         .lte("start_date", addDays(days[6], 2).toISOString())
         .order("start_date"),
+      supabase.from("races").select("id,name,date,start_time,distance_km,settings").gte("date", from).lte("date", to),
     ]);
+    setRaces((r.data as WeekRace[]) ?? []);
     if (p.error) setError(p.error.message);
     else if (a.error) setError(a.error.message);
     setPlanned((p.data as PlannedWorkout[]) ?? []);
@@ -91,6 +98,18 @@ export default function Week({ refreshKey }: { refreshKey: number }) {
                 <span>{d.toLocaleDateString("de-DE", { weekday: "short" })}</span>
                 <span className="muted">{d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}</span>
               </div>
+
+              {races.filter((r) => r.date === key).map((r) => (
+                <button key={r.id} className="race-day" onClick={onGoRace}>
+                  <span className="race-flag">🏁 Wettkampf</span>
+                  <span className="plan-name">{r.name}</span>
+                  <span className="plan-meta">
+                    {r.distance_km.toLocaleString("de-DE")} km
+                    {r.start_time ? ` · ${r.start_time.slice(0, 5)} Uhr` : ""}
+                    {r.settings?.targetTimeS ? ` · Ziel ${fmtHMS(r.settings.targetTimeS)}` : ""}
+                  </span>
+                </button>
+              ))}
 
               {p.map((w) => (
                 <button key={w.id} className="plan-card" onClick={() => setEditor({ date: key, existing: w })}>

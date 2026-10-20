@@ -7,6 +7,9 @@ import { fetchHours, getPlace, runTips, weatherIcon, type Hour } from "./weather
 import WorkoutEditor from "./WorkoutEditor";
 import CheckInCard from "./CheckInCard";
 import MealsToday from "./MealsToday";
+import { ensureSeedRaces, fmtHMS } from "./race";
+
+type NextRace = { id: string; name: string; date: string; start_time: string | null; distance_km: number; settings: { targetTimeS?: number } | null };
 
 type Wellness = {
   date: string;
@@ -33,7 +36,7 @@ function formLabel(tsb: number) {
   return { text: "Hohe Ermüdung", tone: "bad" };
 }
 
-export default function Today({ refreshKey, onGoTraining, onGoFuel }: { refreshKey: number; onGoTraining: () => void; onGoFuel: () => void }) {
+export default function Today({ refreshKey, onGoTraining, onGoFuel, onGoRace }: { refreshKey: number; onGoTraining: () => void; onGoFuel: () => void; onGoRace: () => void }) {
   const now = new Date();
   const today = ymd(now);
   const ws = weekStart(now);
@@ -46,6 +49,7 @@ export default function Today({ refreshKey, onGoTraining, onGoFuel }: { refreshK
   const [wellness, setWellness] = useState<Wellness[]>([]);
   const [hours, setHours] = useState<Hour[]>([]);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [nextRace, setNextRace] = useState<NextRace | null>(null);
   const [editor, setEditor] = useState<{ existing?: PlannedWorkout } | null>(null);
   const place = getPlace();
 
@@ -63,6 +67,9 @@ export default function Today({ refreshKey, onGoTraining, onGoFuel }: { refreshK
         .gte("date", ymd(addDays(now, -8)))
         .order("date", { ascending: false }),
     ]);
+    await ensureSeedRaces(supabase);
+    const { data: rs } = await supabase.from("races").select("id,name,date,start_time,distance_km,settings").gte("date", today).lte("date", ymd(addDays(now, 14))).order("date").limit(1);
+    setNextRace((rs?.[0] as NextRace) ?? null);
     const planned = (p.data as PlannedWorkout[]) ?? [];
     setWeekPlanned(planned);
     setPlannedToday(planned.filter((x) => x.date === today));
@@ -117,6 +124,24 @@ export default function Today({ refreshKey, onGoTraining, onGoFuel }: { refreshK
         <h1>{greeting}</h1>
         <p className="muted">{now.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}</p>
       </div>
+
+      {nextRace && (() => {
+        const days = Math.round((new Date(nextRace.date + "T12:00:00").getTime() - new Date(today + "T12:00:00").getTime()) / 86400000);
+        return (
+          <button className="race-banner" onClick={onGoRace}>
+            <span className="race-count mono">{days === 0 ? "Heute" : days === 1 ? "Morgen" : `${days} Tage`}</span>
+            <span className="race-banner-body">
+              <strong>🏁 {nextRace.name}</strong>
+              <span className="muted small">
+                {new Date(nextRace.date + "T12:00:00").toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}
+                {nextRace.start_time ? ` · ${nextRace.start_time.slice(0, 5)} Uhr` : ""} · {nextRace.distance_km.toLocaleString("de-DE")} km
+                {nextRace.settings?.targetTimeS ? ` · Ziel ${fmtHMS(nextRace.settings.targetTimeS)}` : ""}
+              </span>
+            </span>
+            <span className="muted small">Race-Plan ›</span>
+          </button>
+        );
+      })()}
 
       <CheckInCard
         today={today}
