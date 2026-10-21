@@ -3,7 +3,7 @@
 import { callFunction, supabase } from "./supabase";
 import { estimate, newSection, newStep, toIntervalsText, type Section, type Structure } from "./workout";
 
-type ImportWorkout = { date: string; sport: string; name: string; notes?: string; structure: Structure };
+type ImportWorkout = { date: string; sport: string; name: string; notes?: string; structure: Structure; replaces?: string }; // replaces: Name einer bestehenden Einheit am selben Tag, die aktualisiert wird
 type ImportBatch = { id: string; workouts: ImportWorkout[] };
 
 const sec = (role: Section["role"], steps: ReturnType<typeof newStep>[], extra: Partial<Section> = {}) =>
@@ -55,6 +55,23 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // Sauna-Lauf an die tatsächliche Strecke angepasst (Garmin-Course, 20,4 km, +93/−233 Hm)
+    id: "sauna-route-2026-10-21",
+    workouts: [
+      {
+        date: "2026-10-21", sport: "Run", name: "Lockerer Lauf zur Sauna (20,4 km)", replaces: "Lockerer Lauf zur Sauna (22 km)",
+        notes: "Strecke: Oerlinghausen → Sauna, 20,4 km, +93/−233 Hm (Garmin-Course). km 0–3 sanft bergab (−80 m): bewusst bremsen, kurze Schritte. km 6–9 leicht wellig, ab km 10 flach. Puls unter 135. Wasser mit, ab ~1:15 h 1 Gel. Sauna: erst trinken + essen, max. 2 kurze Gänge.",
+        structure: {
+          sections: [
+            sec("warmup", [newStep({ cue: "bergab bremsen", kind: "distance", km: 3, paceFrom: "6:15", paceTo: "6:40" })]),
+            sec("main", [newStep({ cue: "locker Puls unter 135", kind: "distance", km: 16.4, paceFrom: "5:55", paceTo: "6:25" })], { title: "Locker" }),
+            sec("cooldown", [newStep({ cue: "austrudeln", kind: "distance", km: 1, paceFrom: "6:30", paceTo: "7:00" })]),
+          ],
+        },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;
@@ -101,12 +118,23 @@ async function importBatches(): Promise<boolean> {
     const todo = b.workouts.filter((w) => w.date >= today);
     let ok = true;
     if (todo.length) {
-      const { data: existing, error } = await supabase.from("planned_workouts").select("date,name").in("date", todo.map((w) => w.date));
+      const { data: existing, error } = await supabase.from("planned_workouts").select("id,date,name").in("date", todo.map((w) => w.date));
       if (error) continue; // z. B. noch nicht angemeldet → später erneut
       const have = new Set((existing ?? []).map((e) => `${e.date}|${e.name}`));
       for (const w of todo) {
         if (have.has(`${w.date}|${w.name}`)) continue;
         const est = estimate(w.structure, 360);
+        const old = w.replaces ? (existing ?? []).find((e) => e.date === w.date && e.name === w.replaces) : undefined;
+        if (old) {
+          const { error: updErr } = await supabase.from("planned_workouts").update({
+            name: w.name, sport: w.sport, notes: w.notes ?? null, structure: w.structure, description: toIntervalsText(w.structure),
+            planned_distance_m: est.meters || null, planned_duration_s: est.seconds || null, updated_at: new Date().toISOString(),
+          }).eq("id", old.id);
+          if (updErr) { ok = false; continue; }
+          changed = true;
+          await callFunction("intervals-plan", { action: "push", id: old.id });
+          continue;
+        }
         const { data, error: insErr } = await supabase.from("planned_workouts").insert({
           date: w.date, sport: w.sport, name: w.name, notes: w.notes ?? null,
           structure: w.structure, description: toIntervalsText(w.structure),
