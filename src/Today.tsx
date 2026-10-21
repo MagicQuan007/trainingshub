@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase, type Activity } from "./supabase";
+import { callFunction, supabase, type Activity } from "./supabase";
 import { addDays, ymd } from "./dates";
 import { duration, isRun, km, pace, TYPE_LABEL, weekStart } from "./format";
 import { SPORTS, type PlannedWorkout } from "./workout";
@@ -8,7 +8,7 @@ import WorkoutEditor from "./WorkoutEditor";
 import CheckInCard from "./CheckInCard";
 import MealsToday from "./MealsToday";
 import { applyPlanImports } from "./planImports";
-import { ensureCourseProfiles, ensureSeedRaces, fmtHMS } from "./race";
+import { ensureCourseProfiles, ensureSeedRaces, fmtHMS, syncRacesOnce } from "./race";
 
 type NextRace = { id: string; name: string; date: string; start_time: string | null; distance_km: number; settings: { targetTimeS?: number } | null };
 
@@ -70,7 +70,7 @@ export default function Today({ refreshKey, onGoTraining, onGoFuel, onGoRace }: 
         .order("date", { ascending: false }),
     ]);
     await ensureSeedRaces(supabase);
-    ensureCourseProfiles(supabase); // im Hintergrund, blockiert die Startseite nicht
+    ensureCourseProfiles(supabase).then(() => syncRacesOnce(supabase, callFunction)); // im Hintergrund
     const { data: rs } = await supabase.from("races").select("id,name,date,start_time,distance_km,settings").gte("date", today).lte("date", ymd(addDays(now, 14))).order("date").limit(1);
     setNextRace((rs?.[0] as NextRace) ?? null);
     const planned = (p.data as PlannedWorkout[]) ?? [];

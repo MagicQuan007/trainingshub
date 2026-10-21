@@ -59,8 +59,41 @@ const BATCHES: ImportBatch[] = [
 
 const doneKey = (id: string) => `th.planImport.${id}`;
 
-/** Übernimmt noch nicht importierte Pläne. Läuft still im Hintergrund; Fehler blockieren die App nicht. */
-export async function applyPlanImports(): Promise<boolean> {
+let running: Promise<boolean> | null = null;
+
+/** Übernimmt noch nicht importierte Pläne – nie parallel (sonst doppelte Einträge). */
+export function applyPlanImports(): Promise<boolean> {
+  running ??= (async () => {
+    const changed = await importBatches();
+    const cleaned = await removeDuplicates();
+    return changed || cleaned;
+  })().finally(() => { running = null; });
+  return running;
+}
+
+/** Räumt doppelt importierte Einheiten auf (gleiches Datum + Name): die älteste bleibt, der Rest fliegt auch aus Intervals. */
+async function removeDuplicates(): Promise<boolean> {
+  const today = new Date().toISOString().slice(0, 10);
+  const all = BATCHES.flatMap((b) => b.workouts).filter((w) => w.date >= today);
+  if (!all.length) return false;
+  const { data, error } = await supabase.from("planned_workouts").select("id,date,name,created_at")
+    .in("date", [...new Set(all.map((w) => w.date))]).order("created_at");
+  if (error || !data) return false;
+  const names = new Set(all.map((w) => `${w.date}|${w.name}`));
+  const seen = new Set<string>();
+  let removed = false;
+  for (const row of data as { id: string; date: string; name: string }[]) {
+    const k = `${row.date}|${row.name}`;
+    if (!names.has(k)) continue;
+    if (!seen.has(k)) { seen.add(k); continue; }
+    await callFunction("intervals-plan", { action: "delete", id: row.id });
+    const { error: delErr } = await supabase.from("planned_workouts").delete().eq("id", row.id);
+    if (!delErr) removed = true;
+  }
+  return removed;
+}
+
+async function importBatches(): Promise<boolean> {
   const today = new Date().toISOString().slice(0, 10);
   let changed = false;
   for (const b of BATCHES) {

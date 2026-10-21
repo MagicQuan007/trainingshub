@@ -1,5 +1,5 @@
 // Spiegelt eine geplante Einheit in den Intervals.icu-Kalender (von dort → Garmin-Uhr).
-// Body: { action: "push" | "delete", id: "<planned_workouts.id>" }
+// Body: { action: "push" | "delete", id: "<planned_workouts.id | races.id>", kind?: "workout" | "race" }
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // Nur der App-Owner darf Intervals nutzen (Crew-Mitglieder haben eigene Logins)
@@ -45,13 +45,15 @@ Deno.serve(async (req) => {
   if (userError || !userData.user) return json({ error: "Session ungültig" }, 401, origin);
   if (userData.user.id !== OWNER_ID) return json({ error: "Keine Berechtigung" }, 403, origin);
 
-  let body: { action?: string; id?: string };
+  let body: { action?: string; id?: string; kind?: string };
   try {
     body = await req.json();
   } catch {
     return json({ error: "Ungültiger Body" }, 400, origin);
   }
   const { action, id } = body;
+  const kind = body.kind === "race" ? "race" : "workout";
+  const externalId = kind === "race" ? `race-${id}` : id;
   if (!id || (action !== "push" && action !== "delete")) {
     return json({ error: "action (push|delete) und id erforderlich" }, 400, origin);
   }
@@ -63,12 +65,51 @@ Deno.serve(async (req) => {
     const res = await fetch(`${base}/events/bulk-delete`, {
       method: "PUT",
       headers: { ...auth, "Content-Type": "application/json" },
-      body: JSON.stringify([{ external_id: id }]),
+      body: JSON.stringify([{ external_id: externalId }]),
     });
     if (!res.ok) {
       return json({ error: `Intervals antwortet mit ${res.status}`, detail: await res.text() }, 502, origin);
     }
     return json({ deleted: true }, 200, origin);
+  }
+
+  if (kind === "race") {
+    const { data: race, error: raceError } = await supabase
+      .from("races")
+      .select("id,name,date,start_time,distance_km,gain_m,loss_m,notes,settings,profile")
+      .eq("id", id)
+      .single();
+    if (raceError || !race) return json({ error: "Rennen nicht gefunden" }, 404, origin);
+    const prio = ["A", "B", "C"].includes(race.settings?.priority) ? race.settings.priority : "C";
+    const t = race.settings?.targetTimeS as number | undefined;
+    const hms = (s: number) => `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+    const lines = [
+      `${String(race.distance_km).replace(".", ",")} km` + (race.gain_m ? ` · +${race.gain_m}/−${race.loss_m ?? "?"} Hm` : ""),
+      t ? `Ziel ${hms(t)} (Ø ${Math.floor(t / race.distance_km / 60)}:${String(Math.round((t / race.distance_km) % 60)).padStart(2, "0")}/km)` : "",
+      race.notes ?? "",
+    ].filter(Boolean);
+    const trail = (race.gain_m ?? 0) / race.distance_km > 15;
+    const event = {
+      category: `RACE_${prio}`,
+      start_date_local: `${race.date}T${(race.start_time ?? "00:00:00").slice(0, 8).padEnd(8, ":00")}`,
+      type: trail ? "TrailRun" : "Run",
+      name: race.name,
+      description: lines.join("\n"),
+      distance: Math.round(race.distance_km * 1000),
+      ...(t ? { moving_time: Math.round(t) } : {}),
+      external_id: externalId,
+    };
+    const res = await fetch(`${base}/events/bulk?upsert=true`, {
+      method: "POST",
+      headers: { ...auth, "Content-Type": "application/json" },
+      body: JSON.stringify([event]),
+    });
+    if (!res.ok) return json({ error: `Intervals antwortet mit ${res.status}`, detail: await res.text() }, 502, origin);
+    // deno-lint-ignore no-explicit-any
+    const created: any[] = await res.json();
+    const eventId = created?.[0]?.id != null ? String(created[0].id) : null;
+    await supabase.from("races").update({ intervals_event_id: eventId, synced_at: new Date().toISOString() }).eq("id", id);
+    return json({ event_id: eventId }, 200, origin);
   }
 
   // push: Zeile lesen (RLS stellt sicher, dass sie dem Nutzer gehört)

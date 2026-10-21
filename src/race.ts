@@ -9,6 +9,7 @@ export type RaceSettings = {
   gelIds?: string[];        // Gels/Chews, die mitkommen
   boosterId?: string | null;// Koffein-Booster vor dem Start
   aidStations?: boolean;    // Verpflegungsstellen nutzen (Wasser nachfüllen)
+  priority?: "A" | "B" | "C"; // Intervals: Hauptrennen / wichtig / Aufbau-Wettkampf
 };
 
 /** Höhe alle `step` Meter. `points` ist die aktive Quelle; `gps`/`dem` halten beide Varianten zum Umschalten. */
@@ -64,6 +65,35 @@ export const SEED_RACES = [
     notes: "Eisenach Markt (6:00) → Schmiedefeld. ~15 Verpflegungsstellen, Zielschluss 18:00. Ziel: gut ankommen.",
   },
 ];
+
+const PRIORITY_BY_KEY: Record<string, "A" | "B" | "C"> = { hermann: "A", rennsteig: "B", "djk-gt-2026": "B" };
+
+/**
+ * Spiegelt kommende Rennen als RACE-Events nach Intervals (→ Garmin-Kalender).
+ * Neu oder seit dem letzten Sync geändert → erneut senden.
+ */
+export async function syncRacesToIntervals(
+  sb: { from: (t: string) => any },
+  call: (name: string, body: Record<string, unknown>) => Promise<{ error?: string | null }>,
+) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await sb.from("races").select("id,key,settings,updated_at,synced_at,intervals_event_id").gte("date", today);
+  if (error) return;
+  for (const r of (data as { id: string; key: string | null; settings: RaceSettings | null; updated_at: string; synced_at: string | null }[]) ?? []) {
+    const settings = r.settings ?? {};
+    if (!settings.priority) {
+      const priority = (r.key && PRIORITY_BY_KEY[r.key]) || "C";
+      await sb.from("races").update({ settings: { ...settings, priority } }).eq("id", r.id);
+    } else if (r.synced_at && r.synced_at >= r.updated_at) continue;
+    await call("intervals-plan", { action: "push", kind: "race", id: r.id });
+  }
+}
+
+let racesSyncing: Promise<void> | null = null;
+export function syncRacesOnce(sb: { from: (t: string) => any }, call: (name: string, body: Record<string, unknown>) => Promise<{ error?: string | null }>) {
+  racesSyncing ??= syncRacesToIntervals(sb, call).finally(() => { racesSyncing = null; });
+  return racesSyncing;
+}
 
 /** Strecken-GPX, die mit der App ausgeliefert werden (public/courses) – werden einmalig als Profil hinterlegt */
 const COURSE_FILES: Record<string, { file: string; keepOfficialGain?: boolean }> = {
