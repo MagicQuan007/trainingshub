@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import type { FuelProduct } from "./fuel";
 import { TOLERANCE } from "./fuel";
 import {
-  ensureSeedRaces, clockAt, computeSplits, fetchRaceWeather, fetchTerrain, fmtHMS, fmtPaceS, gainLoss, hydration, parseGpx, planFuel,
+  ensureSeedRaces, ensureCourseProfiles, clockAt, computeSplits, fetchRaceWeather, fetchTerrain, fmtHMS, fmtPaceS, gainLoss, hydration, parseGpx, planFuel,
   type Race as RaceT, type RaceSettings, type RaceWeather, type FuelStep, type Profile,
 } from "./race";
 import { carbGuidance } from "./fuel";
@@ -31,6 +31,7 @@ export default function Race() {
 
   const load = useCallback(async () => {
     await ensureSeedRaces(supabase);
+    await ensureCourseProfiles(supabase);
     const { data } = await supabase.from("races").select("*").order("date");
     const list = (data as RaceT[]) ?? [];
     setRaces(list);

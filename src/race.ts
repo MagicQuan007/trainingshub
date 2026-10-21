@@ -65,6 +65,39 @@ export const SEED_RACES = [
   },
 ];
 
+/** Strecken-GPX, die mit der App ausgeliefert werden (public/courses) – werden einmalig als Profil hinterlegt */
+const COURSE_FILES: Record<string, string> = {
+  "djk-gt-2026": "courses/djk-gt-2026.gpx",
+  "xmas-cross-2026": "courses/xmas-cross-2026.gpx",
+};
+
+/** Hinterlegt fehlende Streckenprofile (inkl. Geländehöhen) für Rennen mit mitgelieferter GPX. */
+export async function ensureCourseProfiles(sb: { from: (t: string) => any }): Promise<boolean> {
+  const keys = Object.keys(COURSE_FILES);
+  const { data } = await sb.from("races").select("id,key,profile").in("key", keys);
+  let changed = false;
+  for (const r of ((data as { id: string; key: string; profile: Profile | null }[]) ?? [])) {
+    if (r.profile) continue;
+    try {
+      const res = await fetch(import.meta.env.BASE_URL + COURSE_FILES[r.key]);
+      if (!res.ok) continue;
+      const g = parseGpx(await res.text());
+      let profile = g.profile;
+      try {
+        const dem = await fetchTerrain(profile.coords!, profile.step);
+        profile = { ...profile, dem, points: dem, source: "dem" };
+      } catch { /* GPS-Höhen behalten */ }
+      const { gain, loss } = gainLoss(profile.points);
+      // Offizielle Distanz bleibt stehen; nur Profil, Höhenmeter und Startort kommen aus der GPX
+      const { error } = await sb.from("races").update({
+        profile, gain_m: gain, loss_m: loss, lat: g.start.lat, lon: g.start.lon, updated_at: new Date().toISOString(),
+      }).eq("id", r.id);
+      if (!error) changed = true;
+    } catch { /* nächster Versuch beim nächsten Öffnen */ }
+  }
+  return changed;
+}
+
 /** Legt vorbefüllte Rennen an, die noch fehlen – jedes nur einmal (gelöschte kommen nicht zurück). */
 export async function ensureSeedRaces(sb: { from: (t: string) => any }) {
   const seenKey = (k: string) => `th.seed.${k}`;
