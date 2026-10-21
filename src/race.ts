@@ -66,9 +66,11 @@ export const SEED_RACES = [
 ];
 
 /** Strecken-GPX, die mit der App ausgeliefert werden (public/courses) – werden einmalig als Profil hinterlegt */
-const COURSE_FILES: Record<string, string> = {
-  "djk-gt-2026": "courses/djk-gt-2026.gpx",
-  "xmas-cross-2026": "courses/xmas-cross-2026.gpx",
+const COURSE_FILES: Record<string, { file: string; keepOfficialGain?: boolean }> = {
+  "djk-gt-2026": { file: "courses/djk-gt-2026.gpx" },
+  "xmas-cross-2026": { file: "courses/xmas-cross-2026.gpx" },
+  // Track ist grob (~40 m Punktabstand) und unterschätzt kleine Wellen → offizielle +510/−710 Hm behalten
+  "hermann": { file: "courses/hermann-2027.gpx", keepOfficialGain: true },
 };
 
 /** Hinterlegt fehlende Streckenprofile (inkl. Geländehöhen) für Rennen mit mitgelieferter GPX. */
@@ -79,7 +81,8 @@ export async function ensureCourseProfiles(sb: { from: (t: string) => any }): Pr
   for (const r of ((data as { id: string; key: string; profile: Profile | null }[]) ?? [])) {
     if (r.profile) continue;
     try {
-      const res = await fetch(import.meta.env.BASE_URL + COURSE_FILES[r.key]);
+      const cfg = COURSE_FILES[r.key];
+      const res = await fetch(import.meta.env.BASE_URL + cfg.file);
       if (!res.ok) continue;
       const g = parseGpx(await res.text());
       let profile = g.profile;
@@ -90,7 +93,8 @@ export async function ensureCourseProfiles(sb: { from: (t: string) => any }): Pr
       const { gain, loss } = gainLoss(profile.points);
       // Offizielle Distanz bleibt stehen; nur Profil, Höhenmeter und Startort kommen aus der GPX
       const { error } = await sb.from("races").update({
-        profile, gain_m: gain, loss_m: loss, lat: g.start.lat, lon: g.start.lon, updated_at: new Date().toISOString(),
+        profile, ...(cfg.keepOfficialGain ? {} : { gain_m: gain, loss_m: loss }),
+        lat: g.start.lat, lon: g.start.lon, updated_at: new Date().toISOString(),
       }).eq("id", r.id);
       if (!error) changed = true;
     } catch { /* nächster Versuch beim nächsten Öffnen */ }
