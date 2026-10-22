@@ -56,7 +56,9 @@ export function zones(s: CoachSettings) {
 export const RACES = [
   { key: "djk-gt-2026", name: "DJK Halbmarathon Gütersloh", date: "2026-10-25", detail: "21,1 km Straße, flach · Trail-&-Road-Cup #4 · Ziel 1:32:30", primary: false },
   { key: "xmas-cross-2026", name: "Weihnachts-Crosslauf Borgholzhausen", date: "2026-12-13", detail: "16 km Cross, hügelig · Cup #5 · Trainingswettkampf", primary: false },
+  { key: "lipperreihe-2026", name: "Weihnachtslauf Lipperreihe", date: "2026-12-20", detail: "10 km · Oerlinghausen · 10-km-Test", primary: false },
   { key: "luisenturm-2027", name: "Luisenturmlauf Borgholzhausen", date: "2027-03-07", detail: "21,1 km Straße/Wald über den Luisenturm · Cup #6 · Formtest", primary: false },
+  { key: "klippenlauf-2027", name: "Ibbenbürener Klippenlauf", date: "2027-03-20", detail: "24,7 km Trail · Hermannslauf-Generalprobe", primary: false },
   { key: "hermann", name: "Hermannslauf", date: "2027-04-25", detail: "31,1 km Trail · +510/−710 Hm · Ziel 2:20:00 · Cup-Finale", primary: true },
   { key: "rennsteig", name: "Rennsteiglauf Supermarathon", date: "2027-05-22", detail: "73,9 km · gut ins Ziel kommen", primary: false },
 ];
@@ -81,7 +83,7 @@ export type PlanWeek = {
   longKm: number;     // langer Lauf Sonntag
   recovery?: boolean; // Entlastungswoche
   note?: string;
-  race?: { name: string; km: number; notes: string }; // Aufbau-Wettkampf am Sonntag (Trail-&-Road-Cup)
+  race?: { name: string; km: number; notes: string; day?: number }; // Aufbau-Wettkampf (day: 0 = Mo … 6 = So, Standard So)
 };
 
 const W = (start: string, phase: PhaseKey, km: number, longKm: number, recovery = false, note?: string, race?: PlanWeek["race"]): PlanWeek =>
@@ -100,7 +102,8 @@ export const SEASON: PlanWeek[] = [
   W("2026-11-30", "base", 47, 20),
   W("2026-12-07", "base", 36, 16, true, "Entlastungswoche mit Cup-Lauf am Sonntag",
     { name: "Weihnachts-Crosslauf Borgholzhausen", km: 16, notes: "Cup #5 · 2 Runden über den Barenberg, Matsch möglich – Trailschuhe. Als harter Trainingslauf, nicht volle Pulle." }),
-  W("2026-12-14", "build", 46, 20),
+  W("2026-12-14", "build", 44, 18, false, "Aufbau mit 10-km-Test am Sonntag",
+    { name: "Weihnachtslauf Lipperreihe", km: 10, notes: "Heimrennen in Oerlinghausen · 10-km-Test eine Woche nach dem Crosslauf: zügig, aber kontrolliert (Ziel ~40–41 min). Danach 20–30 min auslaufen." }),
   W("2026-12-21", "build", 40, 18, false, "Weihnachten – flexibel"),
   W("2026-12-28", "build", 48, 21),
   W("2027-01-04", "build", 36, 16, true),
@@ -114,7 +117,8 @@ export const SEASON: PlanWeek[] = [
   W("2027-03-01", "specific", 44, 21, true, "Entlastungswoche mit Formtest am Sonntag",
     { name: "Luisenturmlauf Borgholzhausen", km: 21.1, notes: "Cup #6 · Hügeliger Halbmarathon über den Luisenturm – Generalprobe für Hermannslauf-Tempo bergauf/bergab, Gels wie im Rennen." }),
   W("2027-03-08", "specific", 54, 27, false, "Long Run auf dem Hermannsweg"),
-  W("2027-03-15", "specific", 55, 28),
+  W("2027-03-15", "specific", 55, 25, false, "Spitzenwoche: Klippenlauf ersetzt den langen Lauf",
+    { name: "Ibbenbürener Klippenlauf", km: 24.7, day: 5, notes: "Sa · Trail mit Höhenmetern, 5 Wochen vor dem Hermannslauf. Als Hermannslauf-Test im geplanten Renntempo laufen, bergab locker laufen lassen, Gels wie im Rennen." }),
   W("2027-03-22", "specific", 55, 28, false, "Generalprobe: Longrun mit Renntempo-Blöcken"),
   W("2027-03-29", "specific", 42, 20, true),
   W("2027-04-05", "specific", 52, 24),
@@ -285,7 +289,7 @@ export function proposeWeek(baseWeek: PlanWeek, s: CoachSettings, factor = 1): P
   // Samstag: zweite harte Einheit nur im Aufbau/Spezifisch (polarisiert: 2 × Z3/Woche)
   let satKm = 0;
   if (week.race) {
-    out.push(run(d(5), "Shakeout 20 min + 3 Steigerungen", "Z1", {
+    out.push(run(d((week.race.day ?? 6) - 1), "Shakeout 20 min + 3 Steigerungen", "Z1", {
       sections: [newSection("main", { steps: [newStep({ minutes: 20, paceFrom: eFrom, paceTo: eTo })] }),
         newSection("main", { title: "Steigerungen", repeat: 3, steps: [newStep({ minutes: 0, seconds: 20, cue: "Steigern" }), newStep({ minutes: 1, cue: "Traben" })] })],
     }, "Vor dem Wettkampf: nur Beine wach machen."));
@@ -325,8 +329,13 @@ export function proposeWeek(baseWeek: PlanWeek, s: CoachSettings, factor = 1): P
 
   // Sonntag: Cup-Wettkampf statt langem Lauf
   if (week.race) {
-    out.push({ date: d(6), sport: "Run", name: week.race.name, zone: "Z2", structure: null, description: null,
+    const rd = week.race.day ?? 6;
+    out.push({ date: d(rd), sport: "Run", name: week.race.name, zone: "Z2", structure: null, description: null,
       notes: week.race.notes, distance_m: Math.round(week.race.km * 1000), duration_s: null });
+    if (rd < 6) {
+      out.push(run(d(6), "Lockeres Auslaufen 40 min", "Z1", { sections: [newSection("main", { steps: [newStep({ minutes: 40, paceFrom: p(s.lt1Pace + 50), paceTo: p(s.lt1Pace + 30) })] })] },
+        "Tag nach dem Wettkampf: ganz locker, Beine ausschütteln."));
+    }
   }
   // Sonntag: langer Lauf
   const longMin = Math.round((week.longKm * (s.lt1Pace + 35)) / 60 / 5) * 5;

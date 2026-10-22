@@ -50,9 +50,19 @@ export const SEED_RACES = [
     notes: "Trail-&-Road-Cup #5 · 2 Runden über den Barenberg, Ravensberger Stadion · Startzeit: rsv-borgholzhausen.de/weihnachtscross",
   },
   {
+    key: "lipperreihe-2026", name: "Weihnachtslauf Lipperreihe", date: "2026-12-20", start_time: null, distance_km: 10, gain_m: null, loss_m: null,
+    lat: 51.9706, lon: 8.7079, settings: { targetTimeS: 40 * 60 + 30, aidStations: false, priority: "C" as const },
+    notes: "55. Weihnachtslauf Lipperreihe, Oerlinghausen · 10-km-Test im Aufbau · Startzeit folgt",
+  },
+  {
     key: "luisenturm-2027", name: "Luisenturmlauf Borgholzhausen", date: "2027-03-07", start_time: null, distance_km: 21.1, gain_m: null, loss_m: null,
     lat: 52.1026, lon: 8.305, settings: { aidStations: true },
     notes: "Trail-&-Road-Cup #6 · Rundkurs über den Luisenturm (Straße + Waldwege), Start/Ziel Ravensberger Stadion · Startzeit folgt",
+  },
+  {
+    key: "klippenlauf-2027", name: "Ibbenbürener Klippenlauf", date: "2027-03-20", start_time: null, distance_km: 24.7, gain_m: null, loss_m: null,
+    lat: 52.2777, lon: 7.7163, settings: { aidStations: true, priority: "C" as const },
+    notes: "13. Ibbenbürener Klippenlauf (Sa) · Trail mit Höhenmetern · Generalprobe 5 Wochen vor dem Hermannslauf · Startzeit folgt",
   },
   {
     key: "hermann", name: "Hermannslauf", date: "2027-04-25", start_time: "11:00", distance_km: 31.1, gain_m: 510, loss_m: 710,
