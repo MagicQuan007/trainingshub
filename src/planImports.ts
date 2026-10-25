@@ -72,6 +72,50 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // Erholungswoche nach dem DJK-Halbmarathon, feste Termine: Track Tuesday + Speed Saturday (NLG)
+    id: "recovery-kw44-2026",
+    workouts: [
+      {
+        date: "2026-10-27", sport: "Run", name: "Track Tuesday (NLG) – 800er kontrolliert",
+        notes: "19 Uhr NLG. 2 Tage nach dem Halbmarathon: 4–5 × 800 m bei ~4:15–4:20/km statt Schwelle, Puls unter 165. Ziehen Waden/Oberschenkel noch → nur locker mit der Gruppe, keine Intervalle. Schuh: Rebel.",
+        structure: {
+          sections: [
+            sec("warmup", [newStep({ cue: "einlaufen", kind: "time", minutes: 15, paceFrom: "5:30", paceTo: "6:00" })]),
+            sec("main", [
+              newStep({ cue: "kontrolliert", kind: "distance", km: 0.8, paceFrom: "4:15", paceTo: "4:20" }),
+              newStep({ cue: "traben", kind: "distance", km: 0.4, paceFrom: "6:00", paceTo: "6:45" }),
+            ], { title: "800er", repeat: 5 }),
+            sec("cooldown", [newStep({ cue: "auslaufen", kind: "time", minutes: 10, paceFrom: "5:45", paceTo: "6:30" })]),
+          ],
+        },
+      },
+      {
+        date: "2026-10-29", sport: "Run", name: "Locker 35–40 min",
+        notes: "Erholung: Puls unter 140, Gespräch muss möglich sein.",
+        structure: { sections: [sec("main", [newStep({ cue: "locker Puls unter 140", kind: "time", minutes: 38, paceFrom: "5:45", paceTo: "6:15" })])] },
+      },
+      {
+        date: "2026-10-31", sport: "Run", name: "Speed Saturday (NLG) – ⅔ Umfang",
+        notes: "9 Uhr NLG. Programm der Gruppe mitlaufen, aber nur ~⅔ der Wiederholungen und nicht voll ausbelasten (Gefühl 8/10). Abends keine Närrische Nacht / Halloween Track Meeting. Schuh: Rebel.",
+        structure: {
+          sections: [
+            sec("warmup", [newStep({ cue: "einlaufen", kind: "time", minutes: 15, paceFrom: "5:30", paceTo: "6:00" })]),
+            sec("main", [
+              newStep({ cue: "zügig 8 von 10", kind: "time", minutes: 1, paceFrom: "3:50", paceTo: "4:05" }),
+              newStep({ cue: "traben", kind: "time", minutes: 1, seconds: 30 }),
+            ], { title: "Speed", repeat: 6 }),
+            sec("cooldown", [newStep({ cue: "auslaufen", kind: "time", minutes: 10, paceFrom: "5:45", paceTo: "6:30" })]),
+          ],
+        },
+      },
+      {
+        date: "2026-11-01", sport: "Run", name: "Langer Lauf locker 13 km",
+        notes: "Konsequent locker, Puls unter 140. Schuh: Ghost Trail (oder Bondi, falls gekauft – dann nur ~10 km zum Eingewöhnen).",
+        structure: { sections: [sec("main", [newStep({ cue: "locker Puls unter 140", kind: "distance", km: 13, paceFrom: "5:50", paceTo: "6:20" })])] },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;
