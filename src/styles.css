@@ -535,3 +535,17 @@ main { display: grid; gap: 16px; }
   border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
 .race-count { font-size: 18px; font-weight: 600; color: var(--accent); min-width: 64px; }
 .race-banner-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+
+/* Mobile: Grid-Spalten dürfen nicht über die Viewport-Breite wachsen (min-content von langen Texten/Buttons) */
+.shell, main, .today, .week, .race, .training, .checkin, .ci-items { grid-template-columns: minmax(0, 1fr); }
+.card, .race-banner { min-width: 0; max-width: 100%; }
+.race-banner { white-space: normal; }
+@media (max-width: 560px) {
+  .race-banner { gap: 10px; padding: 12px 14px; }
+  .race-count { min-width: 0; font-size: 16px; }
+  .race-banner > span:last-child { display: none; }
+  .ci-row { gap: 8px; }
+  .ci-label { min-width: 0; }
+  .ci-dot { width: 32px; height: 32px; }
+  .ci-scale { gap: 4px; }
+}
