@@ -5,7 +5,7 @@ import { weekStart } from "./format";
 import { byId } from "./recipes";
 import { DAY_LABEL, dayTotals, type MealPlan } from "./nutrition";
 import { ensureDetoxPlans } from "./detoxPlan";
-import { DETOX_ID } from "./detox-recipes";
+import { detoxDay } from "./detox-recipes";
 
 /** Kompakte Übersicht „Essen heute“ für das Briefing */
 export default function MealsToday({ refreshKey, onOpen }: { refreshKey: number; onOpen: () => void }) {
@@ -32,7 +32,7 @@ export default function MealsToday({ refreshKey, onOpen }: { refreshKey: number;
       ) : (
         <>
           <p className="small">
-            {plan?.program === DETOX_ID && <><strong>Detox</strong> · </>}<strong>{DAY_LABEL[day.type]}</strong> · Ziel {day.targets.kcal} kcal · {day.targets.carbs} g KH · {day.targets.protein} g Protein
+            {detoxDay[day.date] && <><strong>Detox</strong> · </>}<strong>{DAY_LABEL[day.type]}</strong> · Ziel {day.targets.kcal} kcal · {day.targets.carbs} g KH · {day.targets.protein} g Protein
             <span className="muted"> (Plan: {Math.round(dayTotals(day).kcal)} kcal)</span>
           </p>
           <ul className="today-meals">
