@@ -4,6 +4,8 @@ import { ymd } from "./dates";
 import { weekStart } from "./format";
 import { byId } from "./recipes";
 import { DAY_LABEL, dayTotals, type MealPlan } from "./nutrition";
+import { ensureDetoxPlans } from "./detoxPlan";
+import { DETOX_ID } from "./detox-recipes";
 
 /** Kompakte Übersicht „Essen heute“ für das Briefing */
 export default function MealsToday({ refreshKey, onOpen }: { refreshKey: number; onOpen: () => void }) {
@@ -11,7 +13,8 @@ export default function MealsToday({ refreshKey, onOpen }: { refreshKey: number;
   const today = ymd(new Date());
 
   useEffect(() => {
-    supabase.from("meal_plans").select("plan").eq("week_start", ymd(weekStart(new Date()))).maybeSingle()
+    ensureDetoxPlans()
+      .then(() => supabase.from("meal_plans").select("plan").eq("week_start", ymd(weekStart(new Date()))).maybeSingle())
       .then(({ data }) => setPlan((data?.plan as MealPlan) ?? null));
   }, [refreshKey]);
 
@@ -29,12 +32,12 @@ export default function MealsToday({ refreshKey, onOpen }: { refreshKey: number;
       ) : (
         <>
           <p className="small">
-            <strong>{DAY_LABEL[day.type]}</strong> · Ziel {day.targets.kcal} kcal · {day.targets.carbs} g KH · {day.targets.protein} g Protein
+            {plan?.program === DETOX_ID && <><strong>Detox</strong> · </>}<strong>{DAY_LABEL[day.type]}</strong> · Ziel {day.targets.kcal} kcal · {day.targets.carbs} g KH · {day.targets.protein} g Protein
             <span className="muted"> (Plan: {Math.round(dayTotals(day).kcal)} kcal)</span>
           </p>
           <ul className="today-meals">
             {day.meals.map((m, i) => byId[m.id] && (
-              <li key={i}><span className="muted small">{m.slot === "breakfast" ? "Früh" : m.slot === "lunch" ? "Mittag" : m.slot === "dinner" ? "Abend" : "Snack"}</span> {byId[m.id].name}{m.mult !== 1 ? ` ×${m.mult}` : ""}</li>
+              <li key={i} className={byId[m.id].addon && m.slot !== "kids" ? "addon" : ""}><span className="muted small">{byId[m.id].addon && m.slot !== "kids" ? "" : m.slot === "breakfast" ? "Früh" : m.slot === "lunch" ? "Mittag" : m.slot === "dinner" ? "Abend" : m.slot === "kids" ? "Kinder" : "Snack"}</span> {byId[m.id].name}{m.mult !== 1 ? ` ×${m.mult}` : ""}{m.tag === "cook" ? (m.days === 2 ? " · heute für 2 Tage kochen" : " · heute kochen") : m.tag === "rest" ? " · Reste" : ""}</li>
             ))}
           </ul>
           {day.note && <p className="hint small">{day.note}</p>}

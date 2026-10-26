@@ -1,9 +1,10 @@
 // Rezeptbibliothek: schnell (≤ 30 min), überwiegend vegetarisch, abends kinderfreundlich.
 // Nährwerte pro Erwachsenen-Portion – Richtwerte, gerundet.
+import { DETOX_RECIPES } from "./detox-recipes";
 
 export type Cat = "Obst & Gemüse" | "Kühlregal" | "Brot & Getreide" | "Vorrat" | "Fleisch & Fisch" | "Tiefkühl";
 export type Ing = { n: string; q: number; u: string; c: Cat };
-export type Slot = "breakfast" | "lunch" | "dinner" | "snack";
+export type Slot = "breakfast" | "lunch" | "dinner" | "snack" | "kids";
 export type Protein = "veg" | "fish" | "meat";
 
 export type Recipe = {
@@ -17,6 +18,10 @@ export type Recipe = {
   prep?: boolean;         // gut für Meal Prep
   tip?: string;
   ing: Ing[];
+  prog?: "detox";                        // gehört zu einem Programm (nicht im normalen Generator)
+  serves?: "me" | "adults" | "kids";     // für wen eingekauft wird (Standard: Abendessen = Familie, sonst nur du)
+  addon?: boolean;                       // Beilage/Ergänzung – nicht tauschbar
+  page?: string;                         // Seite im Kochbuch
 };
 
 const G: Cat = "Obst & Gemüse", K: Cat = "Kühlregal", B: Cat = "Brot & Getreide", V: Cat = "Vorrat", F: Cat = "Fleisch & Fisch", T: Cat = "Tiefkühl";
@@ -94,4 +99,5 @@ export const RECIPES: Recipe[] = [
     ing: [{ n: "Apfel", q: 1, u: "Stk", c: G }, { n: "Nussmischung", q: 25, u: "g", c: V }] },
 ];
 
-export const byId = Object.fromEntries(RECIPES.map((r) => [r.id, r])) as Record<string, Recipe>;
+export const ALL_RECIPES: Recipe[] = [...RECIPES, ...DETOX_RECIPES];
+export const byId = Object.fromEntries(ALL_RECIPES.map((r) => [r.id, r])) as Record<string, Recipe>;

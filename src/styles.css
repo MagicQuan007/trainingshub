@@ -549,3 +549,14 @@ main { display: grid; gap: 16px; }
   .ci-dot { width: 32px; height: 32px; }
   .ci-scale { gap: 4px; }
 }
+
+/* Detox-Phase im Essensplan */
+.detox-banner { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); background: color-mix(in srgb, var(--ok) 8%, var(--surface)); }
+.detox-banner p { margin: 4px 0 0; }
+.meal-tag { display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; vertical-align: 1px; }
+.meal-tag.cook { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.meal-tag.rest { color: var(--muted); border: 1px dashed var(--border); }
+.meal.addon { border-top: 0; padding-top: 0; }
+.meal.addon .meal-name { font-weight: 400; color: var(--muted); }
+.meal.kids .meal-name { color: #f5a524; }
+.today-meals li.addon { color: var(--muted); font-size: 13px; }

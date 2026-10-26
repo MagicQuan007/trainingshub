@@ -3,13 +3,17 @@ import { supabase } from "./supabase";
 import { addDays, parseYmd, ymd } from "./dates";
 import { weekStart } from "./format";
 import { byId, type Slot } from "./recipes";
+import { ensureDetoxPlans } from "./detoxPlan";
+import { DETOX_FROM, DETOX_ID, DETOX_TO } from "./detox-recipes";
 import {
-  CAT_ORDER, DAY_LABEL, DEFAULT_PROFILE, dayTotals, generatePlan, nextAlternative, shoppingList,
+  CAT_ORDER, DAY_LABEL, DEFAULT_PROFILE, applyDetox, dayTotals, generatePlan, nextAlternative, shoppingList,
   type MealPlan as Plan, type NutritionProfile,
 } from "./nutrition";
 import type { PlannedWorkout } from "./workout";
 
-const SLOT_LABEL: Record<Slot, string> = { breakfast: "Frühstück", lunch: "Mittag", dinner: "Abendessen (Familie)", snack: "Snack" };
+const SLOT_LABEL: Record<Slot, string> = { breakfast: "Frühstück", lunch: "Mittag", dinner: "Abendessen (Familie)", snack: "Snack", kids: "Kinder abends" };
+const DETOX_LABEL: Partial<Record<Slot, string>> = { breakfast: "Morgens · Smoothie", lunch: "Mittags · warm", dinner: "Abends · Salat" };
+const fmtDm = (iso: string) => parseYmd(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
 
 export default function MealPlan() {
   const [profile, setProfile] = useState<NutritionProfile | null>(null);
@@ -40,6 +44,7 @@ export default function MealPlan() {
 
   const loadPlan = useCallback(async () => {
     setLoading(true);
+    await ensureDetoxPlans();
     const { data } = await supabase.from("meal_plans").select("plan,checked").eq("week_start", ws).maybeSingle();
     setPlan((data?.plan as Plan) ?? null);
     setChecked((data?.checked as Record<string, boolean>) ?? {});
@@ -65,7 +70,7 @@ export default function MealPlan() {
     const by: Record<string, PlannedWorkout[]> = {};
     for (const w of (data as PlannedWorkout[]) ?? []) (by[w.date] ??= []).push(w);
     if (!data?.length) setMsg("Für diese Woche ist noch kein Training geplant – Ziele basieren auf Ruhetagen. Tipp: erst im Coach die Woche übernehmen.");
-    const p = generatePlan(ws, by, profile);
+    const p = applyDetox(generatePlan(ws, by, profile), by, profile);
     setChecked({});
     await savePlan(p, {});
     setBusy(false);
@@ -75,8 +80,20 @@ export default function MealPlan() {
     if (!plan) return;
     const days = plan.days.map((d) => ({ ...d, meals: d.meals.map((m) => ({ ...m })) }));
     const m = days[dayIdx].meals[mealIdx];
-    const used = new Set(days.flatMap((d) => d.meals.filter((x) => x.slot === "dinner").map((x) => x.id)));
-    m.id = nextAlternative(byId[m.id], used).id;
+    const cur = byId[m.id];
+    const used = cur.prog
+      ? new Set(days.flatMap((d) => d.meals.filter((x) => x.slot === m.slot).map((x) => x.id)))
+      : new Set(days.flatMap((d) => d.meals.filter((x) => x.slot === "dinner").map((x) => x.id)));
+    const oldId = m.id;
+    m.id = nextAlternative(cur, used).id;
+    // Mittagessen für 2 Tage: Restetag mittauschen
+    if (m.tag === "cook") {
+      const nm = days[dayIdx + 1]?.meals.find((x) => x.slot === "lunch" && x.id === oldId && x.tag === "rest");
+      if (nm) nm.id = m.id;
+    } else if (m.tag === "rest") {
+      const pm = days[dayIdx - 1]?.meals.find((x) => x.slot === "lunch" && x.id === oldId && x.tag === "cook");
+      if (pm) pm.id = m.id;
+    }
     savePlan({ ...plan, days });
   }
 
@@ -112,6 +129,13 @@ export default function MealPlan() {
 
       {msg && <div className="notice" onClick={() => setMsg(null)}>{msg}</div>}
 
+      {plan?.program === DETOX_ID && (
+        <section className="card detox-banner">
+          <strong>Detox-Phase {fmtDm(DETOX_FROM)} – {fmtDm(DETOX_TO)}</strong>
+          <p className="small">Morgens Smoothie + Skyr/Haferflocken · mittags warm, immer für 2 Tage gekocht · abends Salat mit Eiweiß. Kinder bekommen abends etwas Sättigendes, an harten und langen Tagen isst du davon mit.</p>
+        </section>
+      )}
+
       {loading ? (
         <p className="muted">Lädt …</p>
       ) : !plan ? (
@@ -138,19 +162,29 @@ export default function MealPlan() {
                       const r = byId[m.id];
                       if (!r) return null;
                       const key = `${d.date}-${mi}`;
+                      const slotLabel = r.prog && !r.addon ? (DETOX_LABEL[m.slot] ?? SLOT_LABEL[m.slot]) : r.addon && m.slot !== "kids" ? "" : SLOT_LABEL[m.slot];
+                      const portions = (profile?.adults ?? 2) * (m.days ?? 1);
                       return (
-                        <li key={key} className="meal">
+                        <li key={key} className={`meal ${r.addon ? "addon" : ""} ${m.slot === "kids" ? "kids" : ""}`}>
                           <button className="meal-main" onClick={() => setOpen(open === key ? null : key)}>
-                            <span className="meal-slot muted">{SLOT_LABEL[m.slot]}</span>
-                            <span className="meal-name">{r.name}{m.mult !== 1 && <em> ×{m.mult}</em>}</span>
-                            <span className="mono small muted">{Math.round(r.kcal * m.mult)} kcal · {Math.round(r.carbs * m.mult)} g KH · {Math.round(r.protein * m.mult)} g P</span>
+                            <span className="meal-slot muted">{slotLabel}</span>
+                            <span className="meal-name">
+                              {r.name}{m.mult !== 1 && <em> ×{m.mult}</em>}
+                              {r.page && r.page !== "Buch" && <span className="muted small"> · {r.page}</span>}
+                              {m.tag === "cook" && <span className="meal-tag cook">Kochtag{m.days === 2 ? " · für 2 Tage" : ""}</span>}
+                              {m.tag === "rest" && <span className="meal-tag rest">Reste von gestern</span>}
+                            </span>
+                            {m.slot !== "kids" && <span className="mono small muted">{Math.round(r.kcal * m.mult)} kcal · {Math.round(r.carbs * m.mult)} g KH · {Math.round(r.protein * m.mult)} g P</span>}
                           </button>
-                          {m.slot !== "snack" && <button className="ghost icon" onClick={() => swap(di, mi)} title="Anderes Gericht" aria-label="Gericht tauschen">↻</button>}
+                          {m.slot !== "snack" && !r.addon && m.tag !== "rest" && <button className="ghost icon" onClick={() => swap(di, mi)} title="Anderes Gericht" aria-label="Gericht tauschen">↻</button>}
                           {open === key && (
                             <div className="meal-detail">
-                              <span className="muted small">{r.min} min · {r.type === "veg" ? "vegetarisch" : r.type === "fish" ? "Fisch" : "Fleisch"}{r.prep ? " · Meal Prep" : ""}</span>
+                              <span className="muted small">{r.min} min · {r.type === "veg" ? "vegetarisch" : r.type === "fish" ? "Fisch" : "Fleisch"}{r.prep ? " · Meal Prep" : ""}{r.page ? ` · Kochbuch ${r.page}` : ""}</span>
+                              {m.tag === "cook" && <p className="small"><strong>Heute {portions} Portionen kochen</strong> ({profile?.adults ?? 2} Erwachsene × {m.days ?? 1} {m.days === 2 ? "Tage" : "Tag"}) – Zutaten unten mal {portions}.</p>}
+                              {m.tag === "rest" && <p className="small">Reste vom Kochtag aufwärmen (Reis/Quinoa richtig heiß).</p>}
                               <ul>{r.ing.map((i) => <li key={i.n}>{fmtQ(i.q * m.mult)} {i.u} {i.n}</li>)}</ul>
-                              {m.slot === "dinner" && <p className="muted small">Mengen für deine Portion – die Einkaufsliste rechnet die Familie mit ein.</p>}
+                              {r.prog ? <p className="muted small">{m.slot === "kids" ? "Mengen pro Kind." : r.serves === "me" ? "Nur für dich." : "Mengen pro Portion – die Einkaufsliste rechnet alle Erwachsenen mit ein."}</p>
+                                : m.slot === "dinner" && <p className="muted small">Mengen für deine Portion – die Einkaufsliste rechnet die Familie mit ein.</p>}
                               {r.tip && <p className="small">💡 {r.tip}</p>}
                             </div>
                           )}
@@ -191,7 +225,9 @@ export default function MealPlan() {
                     </ul>
                   </div>
                 ))}
-                <p className="muted small">Abendessen für {profile?.adults} Erwachsene + {profile?.kids} Kinder, Frühstück/Mittag/Snacks nur für dich. Gewürze, Salz und Öl-Grundvorrat nicht enthalten.</p>
+                {plan.program === DETOX_ID
+                  ? <p className="muted small">Detox: Smoothies, Mittagessen und Salate mit Eiweiß für {profile?.adults} Erwachsene, Kinderbeilagen für {profile?.kids} Kinder, Skyr und Trainings-Extras nur für dich. Gewürze (Curry, Kreuzkümmel, Zimt …), Salz und Öl-Grundvorrat nicht enthalten.</p>
+                  : <p className="muted small">Abendessen für {profile?.adults} Erwachsene + {profile?.kids} Kinder, Frühstück/Mittag/Snacks nur für dich. Gewürze, Salz und Öl-Grundvorrat nicht enthalten.</p>}
               </div>
             )}
           </section>

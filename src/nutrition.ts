@@ -8,7 +8,8 @@
 // - Defizit nur an Ruhe-/lockeren Tagen, nie an harten/langen Tagen → vermeidet niedrige Energieverfügbarkeit (RED-S, IOC 2023).
 // - Fett mind. ~0,8 g/kg bzw. 20 % der Energie.
 import { addDays, parseYmd, ymd } from "./dates";
-import { RECIPES, byId, type Cat, type Protein, type Recipe, type Slot } from "./recipes";
+import { ALL_RECIPES, RECIPES, byId, type Cat, type Protein, type Recipe, type Slot } from "./recipes";
+import { DETOX_ID, detoxDay } from "./detox-recipes";
 import type { PlannedWorkout } from "./workout";
 
 export type NutritionProfile = {
@@ -36,9 +37,9 @@ export const DAY_LABEL: Record<DayType, string> = {
 const CARBS_PER_KG: Record<DayType, number> = { rest: 3, strength: 3.5, easy: 4.5, hard: 6, long: 7 };
 
 export type Targets = { kcal: number; carbs: number; protein: number; fat: number };
-export type MealRef = { slot: Slot; id: string; mult: number };
+export type MealRef = { slot: Slot; id: string; mult: number; tag?: "cook" | "rest"; days?: number };
 export type PlanDay = { date: string; type: DayType; preLong: boolean; exerciseKcal: number; targets: Targets; meals: MealRef[]; note?: string };
-export type MealPlan = { generatedAt: string; days: PlanDay[] };
+export type MealPlan = { generatedAt: string; days: PlanDay[]; program?: string };
 
 const HARD_RE = /intervall|schwelle|tempo|bahn|berg|renntempo|×|x\s?\d/i;
 
@@ -178,7 +179,7 @@ export function dayTotals(day: PlanDay): Targets {
   return day.meals.reduce(
     (s, m) => {
       const r = byId[m.id];
-      if (!r) return s;
+      if (!r || r.serves === "kids") return s;
       return { kcal: s.kcal + r.kcal * m.mult, carbs: s.carbs + r.carbs * m.mult, protein: s.protein + r.protein * m.mult, fat: s.fat + r.fat * m.mult };
     },
     { kcal: 0, carbs: 0, protein: 0, fat: 0 },
@@ -187,7 +188,17 @@ export function dayTotals(day: PlanDay): Targets {
 
 /** Nächstes Rezept im gleichen Slot (beim Abendessen bevorzugt gleiche Proteinquelle) */
 export function nextAlternative(current: Recipe, usedIds: Set<string>): Recipe {
-  const pool = RECIPES.filter((r) => r.slot === current.slot);
+  const pool = current.prog
+    ? ALL_RECIPES.filter((r) => r.prog === current.prog && r.slot === current.slot && !r.addon)
+    : RECIPES.filter((r) => r.slot === current.slot);
+  if (current.prog) {
+    const idx = pool.findIndex((r) => r.id === current.id);
+    for (let k = 1; k <= pool.length; k++) {
+      const cand = pool[(idx + k) % pool.length];
+      if (!usedIds.has(cand.id)) return cand;
+    }
+    return pool[(idx + 1) % pool.length] ?? current;
+  }
   const same = current.slot === "dinner" ? pool.filter((r) => r.type === current.type) : pool;
   const list = same.length > 1 ? same : pool;
   const idx = list.findIndex((r) => r.id === current.id);
@@ -208,8 +219,12 @@ export function shoppingList(plan: MealPlan, p: NutritionProfile): Record<Cat, S
     for (const m of day.meals) {
       const r = byId[m.id];
       if (!r) continue;
-      // Abendessen für die ganze Familie: du (mult) + weitere Erwachsene (0,9) + Kinder (0,6)
-      const factor = r.slot === "dinner" ? m.mult + Math.max(0, p.adults - 1) * 0.9 + p.kids * 0.6 : m.mult;
+      // Programm-Rezepte: nach „serves“; sonst Abendessen für die ganze Familie: du (mult) + weitere Erwachsene (0,9) + Kinder (0,6)
+      const serves = r.serves ?? (r.prog ? "adults" : undefined);
+      const factor = serves === "kids" ? p.kids * m.mult
+        : serves === "adults" ? Math.max(1, p.adults) * m.mult
+        : serves === "me" ? m.mult
+        : r.slot === "dinner" ? m.mult + Math.max(0, p.adults - 1) * 0.9 + p.kids * 0.6 : m.mult;
       for (const ing of r.ing) {
         const key = `${ing.n}|${ing.u}`;
         const cur = acc.get(key) ?? { key, n: ing.n, q: 0, u: ing.u, c: ing.c };
@@ -230,3 +245,43 @@ export function shoppingList(plan: MealPlan, p: NutritionProfile): Record<Cat, S
 }
 
 export const CAT_ORDER: Cat[] = ["Obst & Gemüse", "Kühlregal", "Fleisch & Fisch", "Brot & Getreide", "Vorrat", "Tiefkühl"];
+
+// ---------------------------------------------------------------- Detox-Phase (27.10.–16.11.2026)
+
+/** Ersetzt die Tage der Detox-Phase im Plan: Smoothie morgens, warmes Mittagessen (für 2 Tage gekocht), Salat mit Eiweiß abends, Kinderbeilage. */
+export function applyDetox(plan: MealPlan, workoutsByDate: Record<string, PlannedWorkout[]>, p: NutritionProfile): MealPlan {
+  if (!plan.days.some((d) => detoxDay[d.date])) return plan;
+  const typeOf = (date: string): DayType => {
+    const c = classifyDay(workoutsByDate[date] ?? []).type;
+    const dd = detoxDay[date];
+    if (c !== "rest" || !dd?.train) return c;
+    return dd.train === "run" ? "hard" : dd.train;
+  };
+  const days = plan.days.map((day) => {
+    const dd = detoxDay[day.date];
+    if (!dd) return day;
+    const type = typeOf(day.date);
+    const next = ymd(addDays(parseYmd(day.date), 1));
+    const preLong = typeOf(next) === "long";
+    const ex = exerciseKcal(workoutsByDate[day.date] ?? [], p.weightKg);
+    const targets = dayTargets(p, type, ex, preLong);
+    const sameNext = detoxDay[next]?.lunch === dd.lunch;
+    const meals: MealRef[] = [
+      { slot: "breakfast", id: dd.smoothie, mult: 1 },
+      { slot: "breakfast", id: "dx_a_skyr", mult: 1 },
+      { slot: "lunch", id: dd.lunch, mult: 1, tag: dd.cook ? "cook" : "rest", days: dd.cook ? (sameNext ? 2 : 1) : undefined },
+    ];
+    if (dd.bread) meals.push({ slot: "lunch", id: "dx_a_brot", mult: 1 });
+    meals.push({ slot: "dinner", id: dd.salad, mult: 1 }, { slot: "dinner", id: dd.protein, mult: 1 });
+    if (type === "hard" || type === "long" || preLong) meals.push({ slot: "dinner", id: "dx_me_carbs", mult: 1 });
+    if (type === "hard") meals.push({ slot: "snack", id: "s_banana", mult: 1 });
+    if (type === "long") meals.push({ slot: "snack", id: "s_cocoa", mult: 1 });
+    meals.push({ slot: "kids", id: dd.kids, mult: 1 });
+    const notes = [
+      type === "hard" ? "1–2 h vor dem Training Banane + Reiswaffeln." : "",
+      preLong ? "Morgen langer Lauf: abends Nudeln/Brot der Kinder mitessen." : "",
+    ].filter(Boolean);
+    return { ...day, type, preLong, exerciseKcal: ex, targets, meals, note: notes.join(" ") || undefined };
+  });
+  return { ...plan, days, program: DETOX_ID };
+}
