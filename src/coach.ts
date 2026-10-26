@@ -58,7 +58,6 @@ export const RACES = [
   { key: "xmas-cross-2026", name: "Weihnachts-Crosslauf Borgholzhausen", date: "2026-12-13", detail: "16 km Cross, hügelig · Cup #5 · Trainingswettkampf", primary: false },
   { key: "lipperreihe-2026", name: "Weihnachtslauf Lipperreihe", date: "2026-12-20", detail: "10 km · Oerlinghausen · 10-km-Test", primary: false },
   { key: "luisenturm-2027", name: "Luisenturmlauf Borgholzhausen", date: "2027-03-07", detail: "21,1 km Straße/Wald über den Luisenturm · Cup #6 · Formtest", primary: false },
-  { key: "klippenlauf-2027", name: "Ibbenbürener Klippenlauf", date: "2027-03-20", detail: "24,7 km Trail · Hermannslauf-Generalprobe", primary: false },
   { key: "hermann", name: "Hermannslauf", date: "2027-04-25", detail: "31,1 km Trail · +510/−710 Hm · Ziel 2:20:00 · Cup-Finale", primary: true },
   { key: "rennsteig", name: "Rennsteiglauf Supermarathon", date: "2027-05-22", detail: "73,9 km · gut ins Ziel kommen", primary: false },
 ];
@@ -117,8 +116,7 @@ export const SEASON: PlanWeek[] = [
   W("2027-03-01", "specific", 44, 21, true, "Entlastungswoche mit Formtest am Sonntag",
     { name: "Luisenturmlauf Borgholzhausen", km: 21.1, notes: "Cup #6 · Hügeliger Halbmarathon über den Luisenturm – Generalprobe für Hermannslauf-Tempo bergauf/bergab, Gels wie im Rennen." }),
   W("2027-03-08", "specific", 54, 27, false, "Long Run auf dem Hermannsweg"),
-  W("2027-03-15", "specific", 55, 25, false, "Spitzenwoche: Klippenlauf ersetzt den langen Lauf",
-    { name: "Ibbenbürener Klippenlauf", km: 24.7, day: 5, notes: "Sa · Trail mit Höhenmetern, 5 Wochen vor dem Hermannslauf. Als Hermannslauf-Test im geplanten Renntempo laufen, bergab locker laufen lassen, Gels wie im Rennen." }),
+  W("2027-03-15", "specific", 55, 27, false, "Spitzenwoche: langer Lauf mit Höhenmetern auf dem Hermannsweg"),
   W("2027-03-22", "specific", 55, 28, false, "Generalprobe: Longrun mit Renntempo-Blöcken"),
   W("2027-03-29", "specific", 42, 20, true),
   W("2027-04-05", "specific", 52, 24),

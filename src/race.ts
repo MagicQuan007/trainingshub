@@ -1,5 +1,6 @@
 // Race-Planer: GPX-Profil, steigungsangepasstes Pacing, Renntag-Wetter, Verpflegungsplan
 import type { FuelProduct } from "./fuel";
+import { callFunction } from "./supabase";
 
 export type RaceSettings = {
   targetTimeS?: number;
@@ -58,11 +59,6 @@ export const SEED_RACES = [
     key: "luisenturm-2027", name: "Luisenturmlauf Borgholzhausen", date: "2027-03-07", start_time: null, distance_km: 21.1, gain_m: null, loss_m: null,
     lat: 52.1026, lon: 8.305, settings: { aidStations: true },
     notes: "Trail-&-Road-Cup #6 · Rundkurs über den Luisenturm (Straße + Waldwege), Start/Ziel Ravensberger Stadion · Startzeit folgt",
-  },
-  {
-    key: "klippenlauf-2027", name: "Ibbenbürener Klippenlauf", date: "2027-03-20", start_time: null, distance_km: 24.7, gain_m: null, loss_m: null,
-    lat: 52.2777, lon: 7.7163, settings: { aidStations: true, priority: "C" as const },
-    notes: "13. Ibbenbürener Klippenlauf (Sa) · Trail mit Höhenmetern · Generalprobe 5 Wochen vor dem Hermannslauf · Startzeit folgt",
   },
   {
     key: "hermann", name: "Hermannslauf", date: "2027-04-25", start_time: "11:00", distance_km: 31.1, gain_m: 510, loss_m: 710,
@@ -142,8 +138,26 @@ export async function ensureCourseProfiles(sb: { from: (t: string) => any }): Pr
   return changed;
 }
 
+/** Vom Coach wieder gestrichene Rennen: einmalig aus DB und Intervals entfernen. */
+const DROPPED_SEED_KEYS = ["klippenlauf-2027"];
+
+async function removeDroppedRaces(sb: { from: (t: string) => any }) {
+  const doneKey = (k: string) => `th.dropped.${k}`;
+  const todo = DROPPED_SEED_KEYS.filter((k) => { try { return localStorage.getItem(doneKey(k)) !== "1"; } catch { return true; } });
+  if (!todo.length) return;
+  const { data, error } = await sb.from("races").select("id,key").in("key", todo);
+  if (error) return;
+  for (const r of (data as { id: string; key: string }[]) ?? []) {
+    try { await callFunction("intervals-plan", { action: "delete", id: r.id, kind: "race" }); } catch { /* Event evtl. nie gesynct */ }
+    const { error: delErr } = await sb.from("races").delete().eq("id", r.id);
+    if (delErr) return;
+  }
+  todo.forEach((k) => { try { localStorage.setItem(doneKey(k), "1"); } catch { /* ignore */ } });
+}
+
 /** Legt vorbefüllte Rennen an, die noch fehlen – jedes nur einmal (gelöschte kommen nicht zurück). */
 export async function ensureSeedRaces(sb: { from: (t: string) => any }) {
+  await removeDroppedRaces(sb);
   const seenKey = (k: string) => `th.seed.${k}`;
   const seen = (k: string) => { try { return localStorage.getItem(seenKey(k)) === "1"; } catch { return false; } };
   const mark = (k: string) => { try { localStorage.setItem(seenKey(k), "1"); } catch { /* ignore */ } };
