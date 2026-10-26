@@ -1,12 +1,12 @@
 // Trägt die Detox-Phase einmalig in die Wochen-Essenspläne ein (auch wenn schon ein Plan existiert).
 import { supabase } from "./supabase";
 import { addDays, parseYmd, ymd } from "./dates";
-import { DETOX_ID } from "./detox-recipes";
+import { DETOX_ID, DETOX_REV } from "./detox-recipes";
 import { DEFAULT_PROFILE, applyDetox, generatePlan, type MealPlan, type NutritionProfile } from "./nutrition";
 import type { PlannedWorkout } from "./workout";
 
 const WEEKS = ["2026-10-26", "2026-11-02", "2026-11-09", "2026-11-16"];
-const key = (ws: string) => `th.detox.${DETOX_ID}.${ws}`;
+const key = (ws: string) => `th.detox.${DETOX_ID}.r${DETOX_REV}.${ws}`;
 
 export async function loadNutritionProfile(): Promise<NutritionProfile> {
   const [st, w] = await Promise.all([
@@ -45,7 +45,7 @@ async function run(): Promise<boolean> {
     const { data, error } = await supabase.from("meal_plans").select("plan,checked").eq("week_start", ws).maybeSingle();
     if (error) return changed; // z. B. nicht angemeldet → später erneut
     const existing = data?.plan as MealPlan | undefined;
-    if (existing?.program !== DETOX_ID) {
+    if (existing?.program !== DETOX_ID || existing.programRev !== DETOX_REV) {
       profile ??= await loadNutritionProfile();
       const by = await workoutsByDate(ws);
       if (!by) return changed;

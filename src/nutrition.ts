@@ -9,7 +9,7 @@
 // - Fett mind. ~0,8 g/kg bzw. 20 % der Energie.
 import { addDays, parseYmd, ymd } from "./dates";
 import { ALL_RECIPES, RECIPES, byId, type Cat, type Protein, type Recipe, type Slot } from "./recipes";
-import { DETOX_ID, detoxDay } from "./detox-recipes";
+import { DETOX_ID, DETOX_REV, detoxDay } from "./detox-recipes";
 import type { PlannedWorkout } from "./workout";
 
 export type NutritionProfile = {
@@ -39,9 +39,9 @@ const CARBS_PER_KG: Record<DayType, number> = { rest: 3, strength: 3.5, easy: 4.
 export type Targets = { kcal: number; carbs: number; protein: number; fat: number };
 export type MealRef = { slot: Slot; id: string; mult: number; tag?: "cook" | "rest"; days?: number };
 export type PlanDay = { date: string; type: DayType; preLong: boolean; exerciseKcal: number; targets: Targets; meals: MealRef[]; note?: string };
-export type MealPlan = { generatedAt: string; days: PlanDay[]; program?: string };
+export type MealPlan = { generatedAt: string; days: PlanDay[]; program?: string; programRev?: number };
 
-const HARD_RE = /intervall|schwelle|tempo|bahn|berg|renntempo|×|x\s?\d/i;
+const HARD_RE = /intervall|schwelle|tempo|bahn|berg|renntempo|track|speed|\d{3,4}er|×|x\s?\d/i;
 
 export function classifyDay(workouts: PlannedWorkout[]): { type: DayType; exerciseKcal: number; minutes: number } {
   const runs = workouts.filter((w) => w.sport !== "WeightTraining");
@@ -283,5 +283,5 @@ export function applyDetox(plan: MealPlan, workoutsByDate: Record<string, Planne
     ].filter(Boolean);
     return { ...day, type, preLong, exerciseKcal: ex, targets, meals, note: notes.join(" ") || undefined };
   });
-  return { ...plan, days, program: DETOX_ID };
+  return { ...plan, days, program: DETOX_ID, programRev: DETOX_REV };
 }

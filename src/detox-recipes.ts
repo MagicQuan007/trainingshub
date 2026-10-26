@@ -147,6 +147,7 @@ const row = (date: string, train: DetoxDay["train"], cook: "cook" | "rest", lunc
   ({ date, train, cook: cook === "cook", lunch, smoothie, salad, protein, kids, bread });
 
 export const DETOX_ID = "detox-2026-10";
+export const DETOX_REV = 2; // erhöhen → Detox-Tage werden beim nächsten Öffnen neu berechnet
 export const DETOX_FROM = "2026-10-27";
 export const DETOX_TO = "2026-11-16";
 
