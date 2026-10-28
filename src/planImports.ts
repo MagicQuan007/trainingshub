@@ -116,6 +116,29 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // Laufgruppe: nach dem Einlaufen Lauf-ABC als Lap-Schritt – Uhr läuft durch, Lap-Taste startet den Hauptteil
+    id: "group-abc-2026-10-31",
+    workouts: [
+      {
+        date: "2026-10-31", sport: "Run", name: "Speed Saturday (NLG) – 6 × 1 min", replaces: "Speed Saturday (NLG) – ⅔ Umfang",
+        notes: "9 Uhr NLG. Nach dem Einlaufen Lauf-ABC: Uhr weiterlaufen lassen, danach Lap-Taste → Hauptteil startet. Programm der Gruppe, aber nur ~⅔ der Wiederholungen, Gefühl 8/10. Schuh: Rebel.",
+        structure: {
+          sections: [
+            sec("warmup", [
+              newStep({ cue: "einlaufen", kind: "time", minutes: 15, paceFrom: "5:30", paceTo: "6:00" }),
+              newStep({ cue: "Lauf-ABC", kind: "time", minutes: 10, lap: true }),
+            ]),
+            sec("main", [
+              newStep({ cue: "zügig 8 von 10", kind: "time", minutes: 1, paceFrom: "3:50", paceTo: "4:05" }),
+              newStep({ cue: "traben", kind: "time", minutes: 1, seconds: 30 }),
+            ], { title: "Speed", repeat: 6 }),
+            sec("cooldown", [newStep({ cue: "auslaufen", kind: "time", minutes: 10, paceFrom: "5:45", paceTo: "6:30" })]),
+          ],
+        },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;

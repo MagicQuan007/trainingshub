@@ -560,3 +560,4 @@ main { display: grid; gap: 16px; }
 .meal.addon .meal-name { font-weight: 400; color: var(--muted); }
 .meal.kids .meal-name { color: #f5a524; }
 .today-meals li.addon { color: var(--muted); font-size: 13px; }
+.lap-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); white-space: nowrap; }

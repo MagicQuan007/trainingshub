@@ -53,6 +53,14 @@ export function zones(s: CoachSettings) {
 
 // ---------------------------------------------------------------- Rennen & Phasen
 
+/** Einlaufen mit der Laufgruppe: 15 min locker, dann Lauf-ABC – endet per Lap-Taste, die Uhr läuft durch. */
+export function groupWarmup(eFrom: string, eTo: string) {
+  return newSection("warmup", { steps: [
+    newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo }),
+    newStep({ minutes: 10, cue: "Lauf-ABC", lap: true }),
+  ] });
+}
+
 export const RACES = [
   { key: "djk-gt-2026", name: "DJK Halbmarathon Gütersloh", date: "2026-10-25", detail: "21,1 km Straße, flach · Trail-&-Road-Cup #4 · Ziel 1:32:30", primary: false },
   { key: "xmas-cross-2026", name: "Weihnachts-Crosslauf Borgholzhausen", date: "2026-12-13", detail: "16 km Cross, hügelig · Cup #5 · Trainingswettkampf", primary: false },
@@ -213,7 +221,7 @@ export function proposeWeek(baseWeek: PlanWeek, s: CoachSettings, factor = 1): P
       return out;
     }
     out.push(run(d(1), "Bahn kurz: 5 × 400 m", "Z3", {
-      sections: [newSection("warmup", { steps: [newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo })] }),
+      sections: [groupWarmup(eFrom, eTo),
         newSection("main", { repeat: 5, steps: [newStep({ kind: "distance", km: 0.4, paceFrom: p(s.vo2Pace) }), newStep({ minutes: 1, seconds: 30, cue: "Traben" })] }),
         newSection("cooldown", { steps: [newStep({ minutes: 10 })] })],
     }, "Mit der Gruppe, aber nur 5 Wiederholungen."));
@@ -239,7 +247,7 @@ export function proposeWeek(baseWeek: PlanWeek, s: CoachSettings, factor = 1): P
     // keine harte Einheit
   } else if (recovery) {
     out.push(run(d(1), "Bahn kurz: 6 × 400 m", "Z3", {
-      sections: [newSection("warmup", { steps: [newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo })] }),
+      sections: [groupWarmup(eFrom, eTo),
         newSection("main", { repeat: 6, steps: [newStep({ kind: "distance", km: 0.4, paceFrom: p(s.vo2Pace - 5), paceTo: p(s.vo2Pace + 5) }), newStep({ minutes: 1, seconds: 30, cue: "Traben" })] }),
         newSection("cooldown", { steps: [newStep({ minutes: 10 })] })],
     }, "Entlastungswoche: kurz und knackig, nicht ausbelasten."));
@@ -247,7 +255,7 @@ export function proposeWeek(baseWeek: PlanWeek, s: CoachSettings, factor = 1): P
   } else if (phase === "base" && hybrid) {
     const subReps = week.km < 45 ? 6 : 8;
     out.push(run(d(1), `Bahn: ${subReps} × 800 m Sub-Schwelle`, "Z2", {
-      sections: [newSection("warmup", { steps: [newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo })] }),
+      sections: [groupWarmup(eFrom, eTo),
         newSection("main", { repeat: subReps, steps: [
           newStep({ kind: "distance", km: 0.8, paceFrom: p(s.lt2Pace + 18), paceTo: p(s.lt2Pace + 8), cue: "Kontrolliert" }),
           newStep({ kind: "distance", km: 0.4, cue: "Traben", paceFrom: p(s.lt1Pace + 20) }),
@@ -258,7 +266,7 @@ export function proposeWeek(baseWeek: PlanWeek, s: CoachSettings, factor = 1): P
   } else if (phase === "base" || phase === "build" || phase === "taper") {
     const reps = phase === "taper" ? 6 : 8;
     out.push(run(d(1), `Bahn: ${reps} × 800 m (Z3)`, "Z3", {
-      sections: [newSection("warmup", { steps: [newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo })] }),
+      sections: [groupWarmup(eFrom, eTo),
         newSection("main", { repeat: reps, steps: [
           newStep({ kind: "distance", km: 0.8, paceFrom: p(s.lt2Pace - 8), paceTo: p(s.lt2Pace - 16), cue: "Hart" }),
           newStep({ kind: "distance", km: 0.4, cue: "Traben", paceFrom: p(s.lt1Pace + 20) }),
@@ -268,7 +276,7 @@ export function proposeWeek(baseWeek: PlanWeek, s: CoachSettings, factor = 1): P
     tueKm = 4 + reps * 1.2;
   } else if (phase === "specific") {
     out.push(run(d(1), "Bahn: 5 × 1600 m (Z3)", "Z3", {
-      sections: [newSection("warmup", { steps: [newStep({ minutes: 15, paceFrom: eFrom, paceTo: eTo })] }),
+      sections: [groupWarmup(eFrom, eTo),
         newSection("main", { repeat: 5, steps: [
           newStep({ kind: "distance", km: 1.6, paceFrom: p(s.lt2Pace - 5), paceTo: p(s.lt2Pace - 12), cue: "Hart" }),
           newStep({ minutes: 2, cue: "Traben" }),

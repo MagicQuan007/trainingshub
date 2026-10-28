@@ -255,6 +255,9 @@ export default function WorkoutEditor({ date: initialDate, existing, onClose, on
                             <span>/km</span>
                           </div>
                           <input className="cue" placeholder="Hinweis (optional)" value={st.cue} onChange={(e) => updateStep(sec.id, st.id, { cue: e.target.value })} />
+                          <label className="lap-toggle" title="Schritt endet erst, wenn du die Lap-Taste drückst">
+                            <input type="checkbox" checked={!!st.lap} onChange={(e) => updateStep(sec.id, st.id, { lap: e.target.checked })} /> bis Lap
+                          </label>
                           <button className="ghost icon" onClick={() => removeStep(sec.id, st.id)} aria-label="Schritt entfernen">✕</button>
                         </div>
                       ))}

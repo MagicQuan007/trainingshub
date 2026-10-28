@@ -11,6 +11,7 @@ export type Step = {
   km: number;
   paceFrom: string;   // "4:30" – leer = ohne Pace-Ziel
   paceTo: string;     // optional, für Bereich
+  lap?: boolean;      // Schritt endet erst per Lap-Taste (Dauer nur als Schätzung)
 };
 
 export type SectionRole = "warmup" | "main" | "cooldown";
@@ -116,7 +117,7 @@ export function toIntervalsText(st: Structure): string {
     .map((sec) => {
       const lines = sec.steps.map((s) => {
         const cue = s.cue.replace(/[\r\n-]/g, " ").trim();
-        return `- ${cue ? cue + " " : ""}${fmtDur(s)}${fmtPace(s)}`;
+        return `- ${s.lap ? "Press lap " : ""}${cue ? cue + " " : ""}${fmtDur(s)}${fmtPace(s)}`;
       });
       return [sectionHeader(sec), ...lines].join("\n");
     })
