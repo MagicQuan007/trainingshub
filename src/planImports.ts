@@ -139,6 +139,64 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // KW45: zurück in die Basis (hybrid/norwegisch light), Laufgruppe Di + Sa, langer Lauf So
+    id: "kw45-2026",
+    workouts: [
+      {
+        date: "2026-11-03", sport: "Run", name: "Track Tuesday (NLG) – 6 × 800 m Sub-Schwelle",
+        notes: "19 Uhr NLG. Nach dem Einlaufen Lauf-ABC, dann Lap-Taste. 800er knapp UNTER der Schwelle: 4:20–4:30/km, Puls-Deckel ~168. Fühlt sich „angenehm hart“ an, nie wie ein Rennen – wenn die Gruppe schneller läuft, nicht mitziehen lassen. Schuh: Rebel.",
+        structure: {
+          sections: [
+            sec("warmup", [
+              newStep({ cue: "einlaufen", kind: "time", minutes: 15, paceFrom: "5:35", paceTo: "5:10" }),
+              newStep({ cue: "Lauf-ABC", kind: "time", minutes: 10, lap: true }),
+            ]),
+            sec("main", [
+              newStep({ cue: "kontrolliert", kind: "distance", km: 0.8, paceFrom: "4:30", paceTo: "4:20" }),
+              newStep({ cue: "traben", kind: "distance", km: 0.4, paceFrom: "6:00", paceTo: "5:20" }),
+            ], { title: "800er", repeat: 6 }),
+            sec("cooldown", [newStep({ cue: "auslaufen", kind: "time", minutes: 10, paceFrom: "6:15", paceTo: "5:35" })]),
+          ],
+        },
+      },
+      {
+        date: "2026-11-04", sport: "Run", name: "Locker 25 min + 6 Steigerungen",
+        notes: "Puls unter 140. Steigerungen locker-schnell, nicht hart.",
+        structure: {
+          sections: [
+            sec("main", [newStep({ cue: "locker", kind: "time", minutes: 25, paceFrom: "5:35", paceTo: "5:10" })]),
+            sec("main", [
+              newStep({ cue: "steigern", kind: "time", minutes: 0, seconds: 20 }),
+              newStep({ cue: "traben", kind: "time", minutes: 1 }),
+            ], { title: "Steigerungen", repeat: 6 }),
+          ],
+        },
+      },
+      {
+        date: "2026-11-07", sport: "Run", name: "Speed Saturday (NLG) – 2 × 10 min Sub-Schwelle",
+        notes: "9 Uhr NLG. Lauf-ABC, dann Lap-Taste. 2 × 10 min bei 4:29–4:39/km, Puls unter ~168, sprechen in kurzen Sätzen muss gehen. Macht die Gruppe kurze Sprints: mitlaufen, aber nur ~⅔ der Wiederholungen und bei 8/10.",
+        structure: {
+          sections: [
+            sec("warmup", [
+              newStep({ cue: "einlaufen", kind: "time", minutes: 15, paceFrom: "5:35", paceTo: "5:10" }),
+              newStep({ cue: "Lauf-ABC", kind: "time", minutes: 10, lap: true }),
+            ]),
+            sec("main", [
+              newStep({ cue: "Sub-Schwelle", kind: "time", minutes: 10, paceFrom: "4:39", paceTo: "4:29" }),
+              newStep({ cue: "traben", kind: "time", minutes: 1 }),
+            ], { title: "Sub-Schwelle", repeat: 2 }),
+            sec("cooldown", [newStep({ cue: "auslaufen", kind: "time", minutes: 10, paceFrom: "6:15", paceTo: "5:35" })]),
+          ],
+        },
+      },
+      {
+        date: "2026-11-08", sport: "Run", name: "Langer Lauf locker 18 km",
+        notes: "Puls unter 140, ruhig. Wasser mit, ab ~75 min 1 Gel testen. Detox-Tag: mittags Süßkartoffelsuppe + Lifechanging Brot, nach dem Lauf Kakao.",
+        structure: { sections: [sec("main", [newStep({ cue: "locker Puls unter 140", kind: "distance", km: 18, paceFrom: "5:50", paceTo: "5:20" })])] },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;
