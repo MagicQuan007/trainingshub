@@ -197,6 +197,34 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // Trainer-Vorgabe NLG: Fuchs-Gruppe, 14 × (400 flott + 400 zügige Pause)
+    id: "fuchs-2026-11-03",
+    workouts: [
+      {
+        date: "2026-11-03", sport: "Run", name: "Track Tuesday (NLG) – Fuchs 14 × 400/400", replaces: "Track Tuesday (NLG) – 6 × 800 m Sub-Schwelle",
+        notes: "19 Uhr NLG, Fuchs-Gruppe (Vorgabe Trainer). 2 km einlaufen + Lauf-ABC (danach Lap-Taste). 400 m flott in 4:10/km (1:40 pro Runde), 400 m zügige Pause in 4:30–4:35/km (1:48–1:50 pro Runde) – die Pause ist KEIN Traben. Nach 7 Wiederholungen 1 min Trinkpause. Die ersten 3 Runden eher 1:42, damit hinten raus nichts einbricht. Danach auslaufen + locker dehnen. Schuh: Rebel.",
+        structure: {
+          sections: [
+            sec("warmup", [
+              newStep({ cue: "einlaufen", kind: "distance", km: 2, paceFrom: "6:00", paceTo: "5:15" }),
+              newStep({ cue: "Lauf-ABC", kind: "time", minutes: 10, lap: true }),
+            ]),
+            sec("main", [
+              newStep({ cue: "flott 1:40", kind: "distance", km: 0.4, paceFrom: "4:12", paceTo: "4:08" }),
+              newStep({ cue: "zügige Pause 1:49", kind: "distance", km: 0.4, paceFrom: "4:35", paceTo: "4:30" }),
+            ], { title: "Fuchs 1–7", repeat: 7 }),
+            sec("main", [newStep({ cue: "Trinkpause", kind: "time", minutes: 1 })], { title: "Trinkpause" }),
+            sec("main", [
+              newStep({ cue: "flott 1:40", kind: "distance", km: 0.4, paceFrom: "4:12", paceTo: "4:08" }),
+              newStep({ cue: "zügige Pause 1:49", kind: "distance", km: 0.4, paceFrom: "4:35", paceTo: "4:30" }),
+            ], { title: "Fuchs 8–14", repeat: 7 }),
+            sec("cooldown", [newStep({ cue: "auslaufen", kind: "time", minutes: 10, paceFrom: "6:30", paceTo: "5:45" })]),
+          ],
+        },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;
