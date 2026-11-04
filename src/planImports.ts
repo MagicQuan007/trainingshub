@@ -225,6 +225,23 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // Rolle Do Mittagspause (ab sofort fest: Mo abends + Do mittags je 60 min Zone 2)
+    id: "rolle-2026-11-05",
+    workouts: [
+      {
+        date: "2026-11-05", sport: "Ride", name: "Rolle 60 min locker (Mittagspause)",
+        notes: "Zwift, Zone 2: Puls unter 130, unterhalten muss gehen. Keine Rennen/Gruppenfahrten. Grundlage ohne Stoß für Füße und Waden.",
+        structure: {
+          sections: [
+            sec("warmup", [newStep({ cue: "locker einrollen", kind: "time", minutes: 5 })]),
+            sec("main", [newStep({ cue: "Zone 2 Puls unter 130", kind: "time", minutes: 50 })]),
+            sec("cooldown", [newStep({ cue: "ausrollen", kind: "time", minutes: 5 })]),
+          ],
+        },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;

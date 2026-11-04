@@ -176,6 +176,21 @@ function easyMinutes(km: number, s: CoachSettings) {
   return Math.max(20, Math.round((km * (s.lt1Pace + 22)) / 60 / 5) * 5);
 }
 
+/** Lockere Rolleneinheit (Zwift via Intervals). Puls statt Watt, solange die Rad-FTP nicht getestet ist. */
+function rollerRide(date: string, when: string): Proposal {
+  const st: Structure = { sections: [
+    newSection("warmup", { steps: [newStep({ minutes: 5, cue: "locker einrollen" })] }),
+    newSection("main", { steps: [newStep({ minutes: 50, cue: "Zone 2 Puls unter 130" })] }),
+    newSection("cooldown", { steps: [newStep({ minutes: 5, cue: "ausrollen" })] }),
+  ] };
+  return {
+    date, sport: "Ride", name: `Rolle 60 min locker (${when})`, zone: "Z1", structure: st,
+    description: toIntervalsText(st),
+    notes: "Zwift, Zone 2: Puls unter 130, unterhalten muss gehen. Keine Rennen/Gruppenfahrten. Grundlage ohne Stoß für Füße und Waden.",
+    distance_m: null, duration_s: 60 * 60,
+  };
+}
+
 function strength(date: string, phase: PhaseKey, recovery: boolean): Proposal {
   const heavy = phase === "base" || phase === "build";
   const eccentric = phase === "specific";
@@ -240,6 +255,10 @@ export function proposeWeek(baseWeek: PlanWeek, s: CoachSettings, factor = 1): P
     out.push(strength(d(0), phase, !!recovery));
     if (!recovery && phase !== "taper") out.push(strength(d(3), phase, false));
   }
+
+  // Rolle (Zwift): Mo abends + Do Mittagspause, je 60 min locker – Grundlage ohne Laufbelastung
+  out.push(rollerRide(d(0), "abends"));
+  if (phase !== "taper") out.push(rollerRide(d(3), "Mittagspause"));
 
   // Dienstag: Bahn mit Laufgruppe
   let tueKm = 0;
