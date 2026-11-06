@@ -51,6 +51,11 @@ export const SEED_RACES = [
     notes: "Trail-&-Road-Cup #5 · 2 Runden über den Barenberg, Ravensberger Stadion · Startzeit: rsv-borgholzhausen.de/weihnachtscross",
   },
   {
+    key: "airport-run-2026", name: "Paderborn-Lippstadt Airport Run", date: "2026-11-15", start_time: "14:00", distance_km: 10, gain_m: 10, loss_m: 10,
+    lat: 51.6141, lon: 8.6163, settings: { targetTimeS: 41 * 60 + 30, aidStations: false, priority: "C" as const },
+    notes: "Firmenlauf · 10 km (Markötter-Lauf), Start/Ziel Flughafen Paderborn-Lippstadt, Büren · erste 2,5 km über die Landebahn · Startzeit ca. 14 Uhr (Stand Vorjahr – bitte mit Anmeldung abgleichen)",
+  },
+  {
     key: "lipperreihe-2026", name: "Weihnachtslauf Lipperreihe", date: "2026-12-20", start_time: null, distance_km: 10, gain_m: null, loss_m: null,
     lat: 51.9706, lon: 8.7079, settings: { targetTimeS: 40 * 60 + 30, aidStations: false, priority: "C" as const },
     notes: "55. Weihnachtslauf Lipperreihe, Oerlinghausen · 10-km-Test im Aufbau · Startzeit folgt",

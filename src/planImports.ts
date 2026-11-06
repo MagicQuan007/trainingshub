@@ -333,6 +333,36 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // So 15.11.: Airport Run (Firmenlauf) statt langem Lauf; Sa kurzes Vorbelasten
+    id: "airport-run-2026",
+    workouts: [
+      {
+        date: "2026-11-14", sport: "Run", name: "Vorbelastung 20 min + 4 Steigerungen",
+        notes: "Locker, Puls unter 140. Steigerungen locker-schnell. Startunterlagen/Startzeit checken.",
+        structure: {
+          sections: [
+            sec("main", [newStep({ cue: "locker", kind: "time", minutes: 20, paceFrom: "5:50", paceTo: "5:15" })]),
+            sec("main", [
+              newStep({ cue: "steigern", kind: "time", minutes: 0, seconds: 20 }),
+              newStep({ cue: "traben", kind: "time", minutes: 1 }),
+            ], { title: "Steigerungen", repeat: 4 }),
+          ],
+        },
+      },
+      {
+        date: "2026-11-15", sport: "Run", name: "Airport Run Paderborn 10 km (Firmenlauf)", replaces: "Langer Lauf locker 14 km",
+        notes: "Start ca. 14 Uhr (Vorjahr). Erholungswoche → zügig, aber nicht voll: Ziel ~41–42 min (4:06–4:12/km), Puls bis ~170. Erste 2,5 km über die Landebahn – oft windig, in der Gruppe laufen. Mittags normal essen (Zitronenpasta), letzte Mahlzeit bis ~11 Uhr. Schuh: Rebel.",
+        structure: {
+          sections: [
+            sec("warmup", [newStep({ cue: "einlaufen + 3 Steigerungen", kind: "time", minutes: 15, paceFrom: "5:50", paceTo: "5:15" })]),
+            sec("main", [newStep({ cue: "Rennen kontrolliert", kind: "distance", km: 10, paceFrom: "4:12", paceTo: "4:06" })], { title: "Airport Run" }),
+            sec("cooldown", [newStep({ cue: "auslaufen", kind: "time", minutes: 15, paceFrom: "6:15", paceTo: "5:35" })]),
+          ],
+        },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;
