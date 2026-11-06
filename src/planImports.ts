@@ -242,6 +242,26 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // Sa 07.11.: keine NLG (Sohn zum Fußball) – Lauf allein in der Trainingszeit
+    id: "solo-2026-11-07",
+    workouts: [
+      {
+        date: "2026-11-07", sport: "Run", name: "Sub-Schwelle solo 2 × 10 min (während Fußball)", replaces: "Speed Saturday (NLG) – 2 × 10 min Sub-Schwelle",
+        notes: "Allein, ca. 50 min – passt in die Fußballzeit. Nur wenn HRV morgens > 75 und gut geschlafen: 2 × 10 min bei 4:30–4:40/km, Puls unter ~168, ruhig und rund. Sonst: alles locker 45 min, Puls unter 140. Morgen kommt der lange Lauf.",
+        structure: {
+          sections: [
+            sec("warmup", [newStep({ cue: "einlaufen", kind: "time", minutes: 15, paceFrom: "5:40", paceTo: "5:10" })]),
+            sec("main", [
+              newStep({ cue: "Sub-Schwelle", kind: "time", minutes: 10, paceFrom: "4:40", paceTo: "4:30" }),
+              newStep({ cue: "traben", kind: "time", minutes: 2 }),
+            ], { title: "Sub-Schwelle", repeat: 2 }),
+            sec("cooldown", [newStep({ cue: "auslaufen", kind: "time", minutes: 10, paceFrom: "6:15", paceTo: "5:35" })]),
+          ],
+        },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;
