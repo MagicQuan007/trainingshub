@@ -262,6 +262,61 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // KW46: Erholungswoche (~32 km), langer Lauf 14 km
+    id: "kw46-2026",
+    workouts: [
+      {
+        date: "2026-11-09", sport: "Ride", name: "Rolle 60 min locker (abends)",
+        notes: "Zwift, Zone 2: Puls unter 130, unterhalten muss gehen. Keine Rennen/Gruppenfahrten.",
+        structure: {
+          sections: [
+            sec("warmup", [newStep({ cue: "locker einrollen", kind: "time", minutes: 5 })]),
+            sec("main", [newStep({ cue: "Zone 2 Puls unter 130", kind: "time", minutes: 50 })]),
+            sec("cooldown", [newStep({ cue: "ausrollen", kind: "time", minutes: 5 })]),
+          ],
+        },
+      },
+      {
+        date: "2026-11-10", sport: "Run", name: "Track Tuesday (NLG) – kurz 6 × 400 m",
+        notes: "19 Uhr NLG, Erholungswoche: kurz und knackig, nicht ausbelasten. Lauf-ABC, dann Lap-Taste. Gibt der Trainer eine Fuchs-Vorgabe: die gilt, aber nur ~⅔ Umfang. Schuh: Rebel.",
+        structure: {
+          sections: [
+            sec("warmup", [
+              newStep({ cue: "einlaufen", kind: "time", minutes: 15, paceFrom: "5:35", paceTo: "5:10" }),
+              newStep({ cue: "Lauf-ABC", kind: "time", minutes: 10, lap: true }),
+            ]),
+            sec("main", [
+              newStep({ cue: "zügig", kind: "distance", km: 0.4, paceFrom: "3:55", paceTo: "3:45" }),
+              newStep({ cue: "traben", kind: "time", minutes: 1, seconds: 30 }),
+            ], { title: "400er", repeat: 6 }),
+            sec("cooldown", [newStep({ cue: "auslaufen", kind: "time", minutes: 10, paceFrom: "6:15", paceTo: "5:35" })]),
+          ],
+        },
+      },
+      {
+        date: "2026-11-11", sport: "Run", name: "Locker 40 min",
+        notes: "Puls unter 140. Schuh: ForeverRun.",
+        structure: { sections: [sec("main", [newStep({ cue: "locker Puls unter 140", kind: "time", minutes: 40, paceFrom: "5:50", paceTo: "5:15" })])] },
+      },
+      {
+        date: "2026-11-12", sport: "Ride", name: "Rolle 60 min locker (Mittagspause)",
+        notes: "Zwift, Zone 2: Puls unter 130, unterhalten muss gehen. Keine Rennen/Gruppenfahrten.",
+        structure: {
+          sections: [
+            sec("warmup", [newStep({ cue: "locker einrollen", kind: "time", minutes: 5 })]),
+            sec("main", [newStep({ cue: "Zone 2 Puls unter 130", kind: "time", minutes: 50 })]),
+            sec("cooldown", [newStep({ cue: "ausrollen", kind: "time", minutes: 5 })]),
+          ],
+        },
+      },
+      {
+        date: "2026-11-15", sport: "Run", name: "Langer Lauf locker 14 km",
+        notes: "Erholungswoche: ruhig, Puls unter 140. Schuh: Glycerin Max.",
+        structure: { sections: [sec("main", [newStep({ cue: "locker Puls unter 140", kind: "distance", km: 14, paceFrom: "5:50", paceTo: "5:20" })])] },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;
