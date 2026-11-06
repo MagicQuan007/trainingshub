@@ -192,6 +192,12 @@ function rollerRide(date: string, when: string): Proposal {
 }
 
 function strength(date: string, phase: PhaseKey, recovery: boolean): Proposal {
+  // Wiedereinstieg nach Pause: bis Ende KW47 moderat, danach schwer
+  if (date < "2026-11-23") return {
+    date, sport: "WeightTraining", name: "Kraft 6 Uhr – Wiedereinstieg", zone: "Kraft", structure: null,
+    description: "Wiedereinstieg: 2–3 Sätze × 8–10 Wdh., 2–3 Wdh. Reserve. Kniebeuge, Rumänisches Kreuzheben, Bulgarian Split Squat, Wadenheben einbeinig, Hüftbrücke, Rumpf.",
+    notes: "Technik vor Last – ab KW48 schwer & wenige Wiederholungen.", distance_m: null, duration_s: 40 * 60,
+  };
   const heavy = phase === "base" || phase === "build";
   const eccentric = phase === "specific";
   const body = recovery || phase === "taper" || phase === "race" || phase === "recover"

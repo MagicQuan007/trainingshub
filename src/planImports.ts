@@ -317,6 +317,22 @@ const BATCHES: ImportBatch[] = [
       },
     ],
   },
+  {
+    // Krafttraining wieder fest im Plan: Mo + Do, erst 2 Wochen Wiedereinstieg
+    id: "kraft-kw46-2026",
+    workouts: [
+      {
+        date: "2026-11-09", sport: "WeightTraining", name: "Kraft 6 Uhr – Wiedereinstieg",
+        notes: "Wiedereinstieg (2 Wochen): 2 Sätze × 10 Wdh., Gewicht so, dass 2–3 Wdh. Reserve bleiben, saubere Technik vor Last. 1) Kniebeuge (Goblet oder Langhantel) 2) Rumänisches Kreuzheben 3) Bulgarian Split Squat je Bein 4) Wadenheben einbeinig: gestreckt + gebeugt je 12 5) Hüftbrücke einbeinig 6) Seitstütz + Planke je 30–40 s. Danach (ab KW47) schwer & wenige Wdh. – das bringt am meisten für die Laufökonomie.",
+        structure: { sections: [] },
+      },
+      {
+        date: "2026-11-12", sport: "WeightTraining", name: "Kraft 6 Uhr – Wiedereinstieg",
+        notes: "Wiedereinstieg (2 Wochen): 2 Sätze × 10 Wdh., Gewicht so, dass 2–3 Wdh. Reserve bleiben, saubere Technik vor Last. 1) Kniebeuge (Goblet oder Langhantel) 2) Rumänisches Kreuzheben 3) Bulgarian Split Squat je Bein 4) Wadenheben einbeinig: gestreckt + gebeugt je 12 5) Hüftbrücke einbeinig 6) Seitstütz + Planke je 30–40 s. Zusätzlich: Step-ups auf Bank/Stufe 2 × 8 je Bein. Danach (ab KW47) schwer & wenige Wdh. – das bringt am meisten für die Laufökonomie.",
+        structure: { sections: [] },
+      },
+    ],
+  },
 ];
 
 const doneKey = (id: string) => `th.planImport.${id}`;
